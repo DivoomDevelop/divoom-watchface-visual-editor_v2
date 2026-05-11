@@ -21,6 +21,37 @@ body {
   color: var(--text);
 }
 
+.file-protocol-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 10px 16px;
+  background: #4a2c10;
+  border-bottom: 2px solid #e8a045;
+  color: #fff5e6;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.file-protocol-banner__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.file-protocol-banner strong {
+  color: #ffd699;
+}
+
+.file-protocol-banner code {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.file-protocol-banner button {
+  margin-top: 10px;
+}
+
 .topbar {
   display: flex;
   align-items: flex-start;
@@ -176,6 +207,14 @@ button:disabled {
 .hint code {
   font-family: Consolas, Monaco, monospace;
   color: #b9d2ff;
+}
+
+.bg-source-path {
+  font-family: Consolas, Monaco, "Cascadia Mono", monospace;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: default;
+  background: #0c1018;
 }
 
 .template-list {

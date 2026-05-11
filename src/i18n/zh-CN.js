@@ -5,7 +5,8 @@ const zhCN = Object.freeze({
 
   "ui.sec.config": "1) 表盘配置",
   "ui.sec.template": "1.5) 模板列表",
-  "ui.sec.canvas": "2) 画布与底图",
+  "ui.sec.canvas": "2) 画布",
+  "ui.sec.background": "表盘底图",
   "ui.sec.items": "3) 显示元素(ItemList)",
   "ui.sec.editor": "4) 选中元素编辑",
 
@@ -16,6 +17,11 @@ const zhCN = Object.freeze({
   "ui.label.height": "高度",
   "ui.label.zoom": "缩放(%)",
   "ui.label.bgFile": "选择底图",
+  "ui.label.bgSourcePath": "底图路径",
+  "ui.bg.localFileHint": "本地文件 ({name})",
+  "ui.fileProtocol.title": "无法以「仅双击 index.html」的方式加载字体与模板",
+  "ui.fileProtocol.body": "Chrome、Edge 等浏览器会禁止 file:// 页面读取同目录下的 font、template 等资源。请改用：本文件夹中的 start-local-preview.cmd（将自动打开浏览器，需已安装 Python 3）；或在含有 package.json 的项目根目录运行 npm run preview。",
+  "ui.fileProtocol.dismiss": "知道了",
   "ui.placeholder.configJson": "{\"ClockId\":523,\"ItemList\":[...]}",
   "ui.placeholder.templateFilter": "输入模板 ID 关键字",
 
@@ -70,7 +76,8 @@ const zhCN = Object.freeze({
   "editor.asset.pickHint": "选择本地动画文件（GIF/WEBP）",
   "editor.asset.clear": "清除文件",
   "editor.asset.empty": "尚未选择本地文件。",
-  "editor.asset.fileName": "文件：{name}",
+  "editor.asset.filePath": "路径：{path}",
+  "editor.asset.localUploadPathHint": "本地所选文件（浏览器不提供磁盘完整路径）：{name}",
   "editor.asset.fileSize": "大小：{size}",
   "editor.asset.fileType": "类型：{type}",
   "editor.asset.frameCount": "检测帧数：{count}",

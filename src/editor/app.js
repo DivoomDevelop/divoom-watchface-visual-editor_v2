@@ -931,6 +931,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
         : (decodedFrames.length ? decodedFrames.length : null);
       return {
         name: String(file.name || ""),
+        fromLocalPick: true,
+        sourceUrl: "",
         size: toNum(file.size, 0),
         mimeType,
         format: fmt,
@@ -997,6 +999,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
         : (decodedFrames.length ? decodedFrames.length : 1);
       return {
         name: parsedName || basename(url),
+        fromLocalPick: false,
+        sourceUrl: absoluteUrlFromResolvedPath(url),
         size: toNum(buf.byteLength, 0),
         mimeType,
         format,
@@ -1285,6 +1289,23 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     const p = String(pathLike || "");
     if (!p) return "";
     return p.endsWith("/") ? p : `${p}/`;
+  }
+
+  function absoluteUrlFromResolvedPath(resolvedPath) {
+    const s = String(resolvedPath || "").trim();
+    if (!s) return "";
+    try {
+      return new URL(s, window.location.href).href;
+    } catch (e) {
+      return s;
+    }
+  }
+
+  function refreshBackgroundSourceLabel() {
+    syncTemplateDomRefs();
+    if (!dom.txtBgSourcePath) return;
+    dom.txtBgSourcePath.value = state.backgroundSourceLabel || "";
+    dom.txtBgSourcePath.title = state.backgroundSourceLabel || "";
   }
 
   function fontBaseFromCfgPath(cfgPath) {
@@ -1853,6 +1874,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     secConfigTitle: byId("sec-config-title"),
     secTemplateTitle: byId("sec-template-title"),
     secCanvasTitle: byId("sec-canvas-title"),
+    secBackgroundTitle: byId("sec-background-title"),
     secItemlistTitle: byId("sec-itemlist-title"),
     secEditorTitle: byId("sec-editor-title"),
     lblInputConfigFile: byId("lbl-input-config-file"),
@@ -1863,6 +1885,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     lblInputHeight: byId("lbl-input-height"),
     lblInputZoom: byId("lbl-input-zoom"),
     lblInputBgFile: byId("lbl-input-bg-file"),
+    lblBgSourcePath: byId("lbl-bg-source-path"),
     lblCurrentClock: byId("lbl-current-clock"),
     lblClockId: byId("lbl-clock-id"),
     lblItemCount: byId("lbl-item-count"),
@@ -1883,6 +1906,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     inputZoom: byId("input-zoom"),
     txtZoom: byId("txt-zoom"),
     inputBgFile: byId("input-bg-file"),
+    txtBgSourcePath: byId("txt-bg-source-path"),
     btnClearBg: byId("btn-clear-bg"),
     btnFitResolution: byId("btn-fit-resolution"),
     btnLoadDefaults: byId("btn-load-defaults"),
@@ -1906,7 +1930,11 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     btnDelItem: byId("btn-del-item"),
     btnItemUp: byId("btn-item-up"),
     btnItemDown: byId("btn-item-down"),
-    itemEditor: byId("item-editor")
+    itemEditor: byId("item-editor"),
+    fileProtocolBanner: byId("file-protocol-banner"),
+    fileBannerTitle: byId("file-banner-title"),
+    fileBannerBody: byId("file-banner-body"),
+    btnDismissFileBanner: byId("btn-dismiss-file-banner")
   };
 
   /** 模板列表依赖的节点：避免极少数环境下脚本早于节点插入导致 byId 为 null。 */
@@ -1914,9 +1942,13 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     const sel = byId("select-template-category");
     const hint = byId("template-hint");
     const list = byId("template-list");
+    const bgPath = byId("txt-bg-source-path");
+    const lblBgPath = byId("lbl-bg-source-path");
     if (sel) dom.selectTemplateCategory = sel;
     if (hint) dom.templateHint = hint;
     if (list) dom.templateList = list;
+    if (bgPath) dom.txtBgSourcePath = bgPath;
+    if (lblBgPath) dom.lblBgSourcePath = lblBgPath;
   }
 
   const watchCtx = dom.canvas.getContext("2d");
@@ -1938,6 +1970,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     backgroundImage: null,
     backgroundName: "",
     backgroundObjectUrl: "",
+    /** 模板底图等：只读框展示的绝对 URL 或本地上传说明（浏览器无法取得真实磁盘路径） */
+    backgroundSourceLabel: "",
     tickHandle: null
   };
 
@@ -2166,6 +2200,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.secConfigTitle, t("ui.sec.config"));
     setNodeText(dom.secTemplateTitle, t("ui.sec.template"));
     setNodeText(dom.secCanvasTitle, t("ui.sec.canvas"));
+    setNodeText(dom.secBackgroundTitle, t("ui.sec.background"));
     setNodeText(dom.secItemlistTitle, t("ui.sec.items"));
     setNodeText(dom.secEditorTitle, t("ui.sec.editor"));
 
@@ -2177,6 +2212,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.lblInputHeight, t("ui.label.height"));
     setNodeText(dom.lblInputZoom, t("ui.label.zoom"));
     setNodeText(dom.lblInputBgFile, t("ui.label.bgFile"));
+    if (dom.lblBgSourcePath) setNodeText(dom.lblBgSourcePath, t("ui.label.bgSourcePath"));
     if (dom.txtConfigJson) dom.txtConfigJson.placeholder = t("ui.placeholder.configJson");
     if (dom.inputTemplateFilter) dom.inputTemplateFilter.placeholder = t("ui.placeholder.templateFilter");
 
@@ -2201,6 +2237,10 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.legendImage, t("ui.legend.image"));
     setNodeText(dom.legendText, t("ui.legend.text"));
     setNodeText(dom.legendPointer, t("ui.legend.pointer"));
+
+    setNodeText(dom.fileBannerTitle, t("ui.fileProtocol.title"));
+    setNodeText(dom.fileBannerBody, t("ui.fileProtocol.body"));
+    setNodeText(dom.btnDismissFileBanner, t("ui.fileProtocol.dismiss"));
 
     if (!state.config?.ItemList?.length) setNodeText(dom.txtClockTitle, t("ui.default.clockNotLoaded"));
     else setNodeText(dom.txtClockTitle, getClockDisplayName(state.config));
@@ -2696,6 +2736,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     }
     if (token !== templateState.loadToken) return;
     if (!raw) {
+      state.backgroundSourceLabel = "";
+      refreshBackgroundSourceLabel();
       fontStore.log(t("log.templateConfigLoadFailed", { id }));
       return;
     }
@@ -2703,6 +2745,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     clearBackgroundObjectUrl();
     state.backgroundImage = null;
     state.backgroundName = "";
+    state.backgroundSourceLabel = "";
+    refreshBackgroundSourceLabel();
     applyConfig(raw, t("source.templateConfig", { id }));
 
     const [bgResult, imageResult] = await Promise.all([
@@ -2717,9 +2761,13 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     const summaryParts = [];
     if (bgResult.asset) {
       setBackgroundFromAsset(bgResult.asset);
+      const rel = String(bgResult.path || "").trim();
+      state.backgroundSourceLabel = rel ? absoluteUrlFromResolvedPath(rel) : "";
     } else {
+      state.backgroundSourceLabel = "";
       summaryParts.push(t("template.resource.bgMissing"));
     }
+    refreshBackgroundSourceLabel();
     if (imageResult && !imageResult.aborted) {
       summaryParts.push(t("template.resource.imageSummary", { ok: imageResult.loaded, total: imageResult.total }));
       if (imageResult.missing > 0) {
@@ -2987,7 +3035,12 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       if (!asset) {
         left.push(t("editor.asset.empty"));
       } else {
-        left.push(t("editor.asset.fileName", { name: asset.name || "-" }));
+        const pathText = String(asset.sourceUrl || "").trim()
+          ? String(asset.sourceUrl).trim()
+          : asset.fromLocalPick
+            ? t("editor.asset.localUploadPathHint", { name: asset.name || "-" })
+            : (asset.name || "-");
+        left.push(t("editor.asset.filePath", { path: pathText }));
         left.push(t("editor.asset.fileSize", { size: formatBytes(asset.size) }));
         left.push(t("editor.asset.fileType", { type: asset.mimeType || asset.format || "-" }));
         if (Number.isFinite(asset.frameCount)) left.push(t("editor.asset.frameCount", { count: asset.frameCount }));
@@ -3962,6 +4015,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
           clearBackgroundObjectUrl();
           state.backgroundImage = img;
           state.backgroundName = file.name;
+          state.backgroundSourceLabel = t("ui.bg.localFileHint", { name: file.name });
+          refreshBackgroundSourceLabel();
           renderWatchface();
           fontStore.log(t("log.backgroundLoaded", { name: file.name }));
         };
@@ -3975,6 +4030,9 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       clearBackgroundObjectUrl();
       state.backgroundImage = null;
       state.backgroundName = "";
+      state.backgroundSourceLabel = "";
+      if (dom.inputBgFile) dom.inputBgFile.value = "";
+      refreshBackgroundSourceLabel();
       renderWatchface();
     });
 
@@ -4015,6 +4073,30 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     dom.btnDelItem.addEventListener("click", onDeleteItem);
     dom.btnItemUp.addEventListener("click", () => moveItem(-1));
     dom.btnItemDown.addEventListener("click", () => moveItem(1));
+
+    if (dom.btnDismissFileBanner && dom.fileProtocolBanner) {
+      dom.btnDismissFileBanner.addEventListener("click", () => {
+        dom.fileProtocolBanner.hidden = true;
+      });
+    }
+  }
+
+  async function warnIfFileProtocolBlocked() {
+    if (location.protocol !== "file:") return;
+    try {
+      const u = withBase("font/font_info.cfg");
+      const r = await fetch(u, { cache: "no-store" });
+      if (!r.ok) throw new Error("bad");
+      const ct = (r.headers.get("content-type") || "").toLowerCase();
+      if (ct.includes("text/html")) throw new Error("html");
+      try {
+        if (r.body?.cancel) await r.body.cancel();
+      } catch (e) {
+        /* ignore */
+      }
+    } catch (e) {
+      if (dom.fileProtocolBanner) dom.fileProtocolBanner.hidden = false;
+    }
   }
 
   function init() {
@@ -4031,6 +4113,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     refreshFontPreviewSelect();
     refreshTemplateListUi();
     fontStore.log(t("log.uiBuildVersion", { tag: APP_BUILD_TAG }));
+    refreshBackgroundSourceLabel();
     applyConfig({
       ClockId: 0,
       NameCn: t("ui.default.untitled"),
@@ -4046,6 +4129,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     loadDefaultFontConfigs();
     loadTemplateConfigIds();
     loadSampleConfig();
+    void warnIfFileProtocolBlocked();
   }
 
 function boot() {

@@ -5,7 +5,8 @@ const enUS = Object.freeze({
 
   "ui.sec.config": "1) Watchface Config",
   "ui.sec.template": "1.5) Template List",
-  "ui.sec.canvas": "2) Canvas & Background",
+  "ui.sec.canvas": "2) Canvas",
+  "ui.sec.background": "Watchface background",
   "ui.sec.items": "3) Display Items (ItemList)",
   "ui.sec.editor": "4) Selected Item Editor",
 
@@ -16,6 +17,11 @@ const enUS = Object.freeze({
   "ui.label.height": "Height",
   "ui.label.zoom": "Zoom (%)",
   "ui.label.bgFile": "Select background image",
+  "ui.label.bgSourcePath": "Background image URL",
+  "ui.bg.localFileHint": "Local file ({name})",
+  "ui.fileProtocol.title": "Cannot load fonts/templates from a plain file:// page",
+  "ui.fileProtocol.body": "Chrome, Edge, and most browsers block file:// pages from reading font/, template/, and other files next to index.html. Use start-local-preview.cmd in this folder (opens the browser; needs Python 3), or run npm run preview from the project that contains package.json.",
+  "ui.fileProtocol.dismiss": "OK",
   "ui.placeholder.configJson": "{\"ClockId\":523,\"ItemList\":[...]}",
   "ui.placeholder.templateFilter": "Type template ID keyword",
 
@@ -70,7 +76,8 @@ const enUS = Object.freeze({
   "editor.asset.pickHint": "Select local animation file (GIF/WEBP)",
   "editor.asset.clear": "Clear File",
   "editor.asset.empty": "No local file selected yet.",
-  "editor.asset.fileName": "File: {name}",
+  "editor.asset.filePath": "Path: {path}",
+  "editor.asset.localUploadPathHint": "Local file selected (browser cannot reveal full disk path): {name}",
   "editor.asset.fileSize": "Size: {size}",
   "editor.asset.fileType": "Type: {type}",
   "editor.asset.frameCount": "Detected frames: {count}",
