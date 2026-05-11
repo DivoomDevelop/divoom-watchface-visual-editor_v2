@@ -97,4 +97,4 @@ Under `file://`, each page is treated as an isolated origin; the app uses `fetch
 
 ## 相关仓库
 
-- GitHub: https://github.com/DivoomDevelop/divoom-watchface-visual-editor
+- GitHub: https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2
