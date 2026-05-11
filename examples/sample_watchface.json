@@ -1,0 +1,51 @@
+{
+  "ClockId": 17,
+  "NameCn": "Sample Clock",
+  "NameEn": "Sample Clock",
+  "ItemIdList": [
+    "time_main",
+    "date_main"
+  ],
+  "ItemList": [
+    {
+      "item_id": "time_main",
+      "disp": 5,
+      "font": 1,
+      "size": 64,
+      "x": 120,
+      "y": 220,
+      "w": 560,
+      "h": 100,
+      "alig": 1,
+      "sep": 0,
+      "angle": 0,
+      "hier": 0,
+      "transp": 100,
+      "animation": 0,
+      "image_id": 0,
+      "image_addr": "",
+      "color_1": "#FFFFFF",
+      "color_2": "#000000"
+    },
+    {
+      "item_id": "date_main",
+      "disp": 13,
+      "font": 1,
+      "size": 26,
+      "x": 200,
+      "y": 360,
+      "w": 400,
+      "h": 56,
+      "alig": 1,
+      "sep": 0,
+      "angle": 0,
+      "hier": 1,
+      "transp": 100,
+      "animation": 0,
+      "image_id": 0,
+      "image_addr": "",
+      "color_1": "#FFCC66",
+      "color_2": "#000000"
+    }
+  ]
+}

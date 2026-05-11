@@ -1,0 +1,18 @@
+{
+  "fonts": [
+    {
+      "id": 6,
+      "type": 1,
+      "name": "Example TTF Font",
+      "charset": "",
+      "file": "6.BIN"
+    },
+    {
+      "id": 112,
+      "type": 0,
+      "name": "Digits Image Font",
+      "charset": "0123456789",
+      "file": "112.BIN"
+    }
+  ]
+}
