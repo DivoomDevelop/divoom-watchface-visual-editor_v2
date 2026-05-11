@@ -7,11 +7,12 @@ import {
   getLanguage,
   getLocaleCode,
   t
-} from "./i18n/index.js";
+} from "../i18n/index.js";
 
-(function () {
-  "use strict";
-  const APP_BUILD_TAG = "2026-05-09 11:26";
+const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
+
+const APP_BUILD_TAG = "2026-05-11 12:00";
 
   const DISP_NAME_MAP = Object.freeze({
     1: "SECOND",
@@ -401,10 +402,10 @@ import {
   const TEMPLATE_NAME_SCAN_CONCURRENCY = 8;
   const TEMPLATE_SCAN_MIN_ID = 1;
   const TEMPLATE_SCAN_DEFAULT_MAX_ID = 2000;
-  const TEMPLATE_CONFIG_DIR = "./template/config/";
-  const TEMPLATE_DIR_15 = "./template/15/";
-  const TEMPLATE_DIR_29 = "./template/29/";
-  const TEMPLATE_ORGANIZE_REPORT_PATH = "./template/organize-report.json";
+  const TEMPLATE_CONFIG_DIR = withBase("template/config/");
+  const TEMPLATE_DIR_15 = withBase("template/15/");
+  const TEMPLATE_DIR_29 = withBase("template/29/");
+  const TEMPLATE_ORGANIZE_REPORT_PATH = withBase("template/organize-report.json");
   const TEMPLATE_BG_EXT_CANDIDATES = [".bin", ".png", ".jpg", ".jpeg", ".webp", ".gif"];
   const TEMPLATE_IMG_EXT_CANDIDATES = [".bin", ".png", ".webp", ".gif", ".jpg", ".jpeg"];
   const TEMPLATE_CLASSIFY_DATA = Object.freeze({
@@ -1197,6 +1198,8 @@ import {
   async function fetchJson(path) {
     const res = await fetch(path, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("text/html")) throw new Error("unexpected HTML (SPA fallback?)");
     const txt = await res.text();
     return parseJsonText(txt);
   }
@@ -1695,7 +1698,7 @@ import {
       (async () => {
         const basePaths = Array.isArray(runtime.fontBasePaths) && runtime.fontBasePaths.length
           ? runtime.fontBasePaths
-          : ["./font/"];
+          : [withBase("font/")];
         for (const local of candidates) {
           for (const base of basePaths) {
             try {
@@ -1906,6 +1909,16 @@ import {
     itemEditor: byId("item-editor")
   };
 
+  /** 模板列表依赖的节点：避免极少数环境下脚本早于节点插入导致 byId 为 null。 */
+  function syncTemplateDomRefs() {
+    const sel = byId("select-template-category");
+    const hint = byId("template-hint");
+    const list = byId("template-list");
+    if (sel) dom.selectTemplateCategory = sel;
+    if (hint) dom.templateHint = hint;
+    if (list) dom.templateList = list;
+  }
+
   const watchCtx = dom.canvas.getContext("2d");
   const fontPreviewCtx = dom.fontPreviewCanvas?.getContext("2d") || null;
   let currentLanguageEnum = DEFAULT_LANGUAGE_ENUM;
@@ -1943,6 +1956,7 @@ import {
   const runtime = {
     fontCfgPath: "",
     fontBasePaths: [
+      withBase("font/"),
       "./font/",
       "font/",
       "./html/font/",
@@ -2085,6 +2099,19 @@ import {
     for (const id of Array.isArray(stats.configMissing) ? stats.configMissing : []) push(id);
     for (const row of Array.isArray(stats.dir15Missing) ? stats.dir15Missing : []) push(row?.id);
     for (const row of Array.isArray(stats.dir29MissingById) ? stats.dir29MissingById : []) push(row?.id);
+    return [...set];
+  }
+
+  /** 内置模板分类表中的 clockId，用于扩充探测上界（report 里只有「缺失」id 时不得作为探测下界）。 */
+  function collectClassifyCatalogClockIds() {
+    const set = new Set();
+    const classifyList = Array.isArray(TEMPLATE_CLASSIFY_DATA?.ClassifyList) ? TEMPLATE_CLASSIFY_DATA.ClassifyList : [];
+    for (const row of classifyList) {
+      for (const id of Array.isArray(row.clockid) ? row.clockid : []) {
+        const n = toNum(id, NaN);
+        if (Number.isFinite(n) && n > 0) set.add(n);
+      }
+    }
     return [...set];
   }
 
@@ -2338,6 +2365,7 @@ import {
   }
 
   function refreshTemplateCategorySelectorUi() {
+    syncTemplateDomRefs();
     if (!dom.selectTemplateCategory) return;
     const previousSelected = toNum(templateState.selectedClassifyId, NaN);
     dom.selectTemplateCategory.innerHTML = "";
@@ -2443,6 +2471,7 @@ import {
   }
 
   function refreshTemplateListUi() {
+    syncTemplateDomRefs();
     if (!dom.templateList || !dom.templateHint) return;
     const selectedClassify = getSelectedTemplateClassifyRow();
     const categoryTemplateIds = selectedClassify ? selectedClassify.availableIds : [];
@@ -2487,13 +2516,24 @@ import {
     try {
       const path = `${TEMPLATE_CONFIG_DIR}${id}.cfg`;
       const res = await fetch(path, { cache: "no-store" });
-      const ok = !!res.ok;
+      if (!res.ok) return false;
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      // Vite dev / preview：不存在的 public 文件会 200 返回 index.html，不能仅看 res.ok。
+      if (ct.includes("text/html")) return false;
+      const reader = res.body?.getReader?.();
+      if (!reader) return false;
+      const first = await reader.read();
       try {
-        if (res.body && typeof res.body.cancel === "function") await res.body.cancel();
+        await reader.cancel();
       } catch (e) {
         // ignore
       }
-      return ok;
+      if (first.done || !first.value?.length) return false;
+      let head = "";
+      for (let i = 0; i < Math.min(first.value.length, 40); i++) {
+        head += String.fromCharCode(first.value[i]);
+      }
+      return head.trimStart().startsWith("{");
     } catch (e) {
       return false;
     }
@@ -2523,6 +2563,7 @@ import {
 
   async function resolveTemplateConfigIds() {
     const scanPaths = [
+      withBase("template/config/"),
       "./template/config/",
       "template/config/",
       "./html/template/config/",
@@ -2546,10 +2587,13 @@ import {
     } catch (e) {
       // ignore
     }
-    const candidateIds = collectTemplateCandidateIdsFromReport(report);
-    const minCandidate = candidateIds.length ? Math.min(...candidateIds) : TEMPLATE_SCAN_MIN_ID;
-    const maxCandidate = candidateIds.length
-      ? Math.max(...candidateIds, TEMPLATE_SCAN_DEFAULT_MAX_ID)
+    const reportHints = collectTemplateCandidateIdsFromReport(report);
+    const catalogIds = collectClassifyCatalogClockIds();
+    const spanHints = [...new Set([...reportHints, ...catalogIds])];
+    // 浏览器/Vite 下无法列出目录；若仅用 report 里「缺失」id 算 min，会漏掉 1..(min-1) 等真实存在的 cfg（例如 ClockId 17）。
+    const minCandidate = TEMPLATE_SCAN_MIN_ID;
+    const maxCandidate = spanHints.length
+      ? Math.max(TEMPLATE_SCAN_DEFAULT_MAX_ID, ...spanHints)
       : TEMPLATE_SCAN_DEFAULT_MAX_ID;
     const probed = await probeTemplateConfigIds(minCandidate, maxCandidate, TEMPLATE_SCAN_CONCURRENCY);
     if (probed.length) return { ids: probed, source: "probe" };
@@ -2557,6 +2601,7 @@ import {
   }
 
   async function loadTemplateConfigIds() {
+    syncTemplateDomRefs();
     templateState.loading = true;
     templateState.error = "";
     templateState.metaById = new Map();
@@ -2587,6 +2632,7 @@ import {
     if (!Number.isFinite(id)) return null;
     const paths = [
       `${TEMPLATE_CONFIG_DIR}${id}.cfg`,
+      withBase(`template/config/${id}.cfg`),
       `template/config/${id}.cfg`,
       `./html/template/config/${id}.cfg`,
       `../html/template/config/${id}.cfg`,
@@ -3682,6 +3728,7 @@ import {
 
   async function loadSampleConfig() {
     const paths = [
+      withBase("examples/sample_watchface.json"),
       "../examples/sample_watchface.json",
       "./examples/sample_watchface.json",
       "../docs/EXAMPLE/api_responses/example/Device_GetLocalClockInfo_response.example.json"
@@ -3702,6 +3749,7 @@ import {
         if (!list.includes(value)) list.push(value);
       };
       const staticCfg = [
+        withBase("font/font_info.cfg"),
         "./font/font_info.cfg",
         "font/font_info.cfg",
         "./html/font/font_info.cfg",
@@ -3712,6 +3760,7 @@ import {
       ];
       staticCfg.forEach((p) => pushUnique(cfgCandidates, p));
       try {
+        pushUnique(cfgCandidates, new URL(withBase("font/font_info.cfg"), window.location.origin + BASE_URL).toString());
         pushUnique(cfgCandidates, new URL("./font/font_info.cfg", window.location.href).toString());
         pushUnique(cfgCandidates, new URL("./html/font/font_info.cfg", window.location.href).toString());
         pushUnique(cfgCandidates, new URL("../font/font_info.cfg", window.location.href).toString());
@@ -3722,13 +3771,14 @@ import {
 
       let appScript = null;
       try {
-        appScript = Array.from(document.scripts || []).find((s) => /\/app\.js(\?|$)/.test(s.src || ""));
+        appScript = Array.from(document.scripts || []).find((s) => /\/(main|app)\.js(\?|$)/.test(s.src || ""));
       } catch (e) {
         fontStore.log(`读取 document.scripts 失败: ${errorToText(e)}`);
       }
       if (appScript?.src) {
-        const base = appScript.src.replace(/\/app\.js(\?.*)?$/, "/");
+        const base = appScript.src.replace(/\/(main|app)\.js(\?.*)?$/, "/");
         pushUnique(cfgCandidates, `${base}font/font_info.cfg`);
+        pushUnique(cfgCandidates, `${base}../font/font_info.cfg`);
       }
 
       fontStore.log(`字体配置调试: location=${window.location.href}`);
@@ -3968,6 +4018,7 @@ import {
   }
 
   function init() {
+    syncTemplateDomRefs();
     currentLanguageEnum = resolveInitialLanguageEnum();
     setLanguage(currentLanguageEnum, false);
     currentLanguageEnum = getLanguage();
@@ -3997,5 +4048,25 @@ import {
     loadSampleConfig();
   }
 
-  init();
-})();
+function boot() {
+  try {
+    init();
+  } catch (err) {
+    console.error("[watchface-editor] init failed:", err);
+    try {
+      syncTemplateDomRefs();
+      const hint = dom.templateHint || byId("template-hint");
+      if (hint) {
+        hint.textContent = String(err?.message || err || "init failed");
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot, { once: true });
+} else {
+  boot();
+}

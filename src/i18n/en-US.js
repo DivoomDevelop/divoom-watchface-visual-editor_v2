@@ -96,7 +96,7 @@ const enUS = Object.freeze({
   "font.preview.waitCfg": "Please wait for auto-loading html/font/font_info.cfg.",
   "font.preview.metaMissing": "Font metadata does not exist.",
 
-  "template.hint.loading": "Scanning html/template/config ...",
+  "template.hint.loading": "Scanning template/config (first scan may take a moment)…",
   "template.hint.empty": "No template configs found.",
   "template.hint.loaded": "Loaded {count} templates. Click one to apply immediately.",
   "template.hint.error": "Failed to load template list: {message}",

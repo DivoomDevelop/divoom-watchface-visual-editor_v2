@@ -96,7 +96,7 @@ const zhCN = Object.freeze({
   "font.preview.waitCfg": "请先等待自动加载 html/font/font_info.cfg。",
   "font.preview.metaMissing": "字体元数据不存在。",
 
-  "template.hint.loading": "正在扫描 html/template/config ...",
+  "template.hint.loading": "正在扫描 template/config（首次可能稍慢）…",
   "template.hint.empty": "未扫描到可用模板配置。",
   "template.hint.loaded": "已加载 {count} 个模板，点击即可应用到右侧预览。",
   "template.hint.error": "模板列表加载失败: {message}",

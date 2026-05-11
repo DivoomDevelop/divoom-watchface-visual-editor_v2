@@ -7,13 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Divoom 表盘 PC 预览与编辑器</title>
-  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div style="padding:12px 16px;background:#ffefc2;color:#6a4300;font-weight:700;border-bottom:1px solid #e8c983;">
-    重要提示：新架构入口是 modern-editor，
-    <a href="./modern-editor/" style="color:#8a2d00;text-decoration:underline;">请点击这里进入</a>
-  </div>
   <header class="topbar">
     <div class="title-wrap">
       <h1 id="app-title">Divoom 表盘 PC 预览与编辑器</h1>
@@ -53,7 +48,7 @@
         <div class="btn-row">
           <button id="btn-reload-templates" type="button">刷新模板列表</button>
         </div>
-        <div id="template-hint" class="hint">模板列表加载中...</div>
+        <div id="template-hint" class="hint"></div>
         <ul id="template-list" class="template-list"></ul>
       </section>
 
@@ -129,6 +124,6 @@
     </label>
   </template>
 
-  <script type="module" src="./app.js?v=202605091126"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
