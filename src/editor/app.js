@@ -712,6 +712,21 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     return clamp(Math.round(toNum(value, fallback)), -20, 200);
   }
 
+  /** 解析 Item 的字体 ID：font 常为 0 占位，真实 ID 可能在 Font / font_id 等字段（无法用 ?? 从 0 回退）。 */
+  function resolveItemFontId(item) {
+    if (!item || typeof item !== "object") return 0;
+    const firstPositive = (...vals) => {
+      for (const v of vals) {
+        const n = toNum(v, NaN);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+      return NaN;
+    };
+    const prefer = firstPositive(item.font, item.Font, item.font_id, item.FontId);
+    if (Number.isFinite(prefer)) return prefer;
+    return toNum(item.font ?? item.Font ?? item.font_id ?? item.FontId, 0);
+  }
+
   function measureTextWithSpacing(ctx, text, spacingPx = 0) {
     const chars = [...String(text ?? "")];
     if (!chars.length) return 0;
@@ -1549,7 +1564,9 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     }
 
     getMeta(id) {
-      return this.fontMeta.get(id) || null;
+      const n = toNum(id, NaN);
+      if (!Number.isFinite(n)) return null;
+      return this.fontMeta.get(n) || this.fontMeta.get(String(n)) || null;
     }
 
     getAllMetas() {
@@ -1650,7 +1667,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
 
         if (this.fontFileById.has(meta.id)) {
           const file = this.fontFileById.get(meta.id);
-          if (meta.type === 1) {
+          if (toNum(meta.type, 1) === 1) {
             await this.ensureTtfFamily(meta.id, file);
           } else {
             await this.ensureImageBuffer(meta.id, file);
@@ -1745,8 +1762,17 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     }
 
     isImageFont(id) {
-      const meta = this.getMeta(id);
-      return !!meta && toNum(meta.type, 1) === 0;
+      const n = toNum(id, NaN);
+      if (!Number.isFinite(n)) return false;
+      const meta = this.getMeta(n);
+      if (meta) {
+        if (toNum(meta.type, 1) === 0) return true;
+        const url = String(meta.url || "").toLowerCase();
+        // 设备 font_info 中图像资源多为 .bin；防止 type 字段异常时编辑区与画布不一致
+        if (url.endsWith(".bin")) return true;
+      }
+      if (this.imageBuffers.has(n)) return true;
+      return false;
     }
 
     async ensureGlyph(meta, char) {
@@ -1793,10 +1819,10 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       return null;
     }
 
-    drawImageFontText(ctx, text, item, rect) {
-      const fontId = toNum(item.font, 0);
+    drawImageFontText(ctx, text, item, rect, fontIdOverride) {
+      const fontId = toNum(fontIdOverride != null ? fontIdOverride : item.font, 0);
       const meta = this.getMeta(fontId);
-      if (!meta || toNum(meta.type, 1) !== 0) return false;
+      if (!meta || !this.isImageFont(fontId)) return false;
       if (!meta.charset) return false;
       if (!this.imageBuffers.has(fontId)) {
         this.ensureOnDemandFetch(fontId);
@@ -1909,8 +1935,6 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     txtBgSourcePath: byId("txt-bg-source-path"),
     btnClearBg: byId("btn-clear-bg"),
     btnFitResolution: byId("btn-fit-resolution"),
-    btnLoadDefaults: byId("btn-load-defaults"),
-    btnLoadSample: byId("btn-load-sample"),
     btnExportConfig: byId("btn-export-config"),
     // Left font resource panel is removed, keep these optional for compatibility.
     inputFontFilter: byId("input-font-filter"),
@@ -2185,6 +2209,18 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     "#90ee90", "#ffd700", "#ffa7c4", "#7f8c8d", "#2c3e50", "#e74c3c"
   ];
   const IMAGE_EDITOR_HIDDEN_FIELDS = new Set(["font", "size", "sep", "alig", "color_1", "color_2", "transp"]);
+  /** 图像字体仅使用排版矩形与对齐；其余样式项在设备侧无效，编辑面板中隐藏。 */
+  const IMAGE_FONT_EDITOR_VISIBLE_KEYS = new Set([
+    "item_id",
+    "disp",
+    "font",
+    "__preview_text__",
+    "x",
+    "y",
+    "w",
+    "h",
+    "alig"
+  ]);
 
   function setNodeText(node, value) {
     if (node) node.textContent = String(value ?? "");
@@ -2221,8 +2257,6 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.btnReloadTemplates, t("ui.btn.reloadTemplates"));
     setNodeText(dom.btnClearBg, t("ui.btn.clearBg"));
     setNodeText(dom.btnFitResolution, t("ui.btn.applyResolution"));
-    setNodeText(dom.btnLoadDefaults, t("ui.btn.reloadFonts"));
-    setNodeText(dom.btnLoadSample, t("ui.btn.loadSample"));
     setNodeText(dom.btnExportConfig, t("ui.btn.export"));
 
     setNodeText(dom.btnAddItem, t("ui.btn.add"));
@@ -2291,7 +2325,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     item.color_1 = ensureColorHex(item.color_1, "#ffffff");
     item.color_2 = ensureColorHex(item.color_2, "#000000");
     item.disp = toNum(item.disp ?? item.type, item.disp ?? 4);
-    item.font = toNum(item.font, 0);
+    item.font = resolveItemFontId(item);
     item.size = toNum(item.size ?? item.font_size, toNum(item.size, 32));
     item.x = toNum(item.x, 0);
     item.y = toNum(item.y, 0);
@@ -2796,10 +2830,13 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       const label = document.createElement("div");
       label.className = "disp-label";
       label.textContent = `${item.item_id || "-"} | ${formatDispOptionText(toNum(item.disp, 0))}`;
-      const meta = fontStore.getMeta(toNum(item.font, 0));
+      const fid = resolveItemFontId(item);
+      const meta = fontStore.getMeta(fid);
       const tag = document.createElement("span");
       tag.className = "font-tag";
-      tag.textContent = `${t("common.fontPrefix")}${toNum(item.font, 0)}${meta ? ` ${meta.type === 0 ? "[IMG]" : "[TTF]"} ${meta.name || ""}` : ""}`;
+      tag.textContent = `${t("common.fontPrefix")}${fid}${
+        meta ? ` ${fontStore.isImageFont(fid) ? "[IMG]" : "[TTF]"} ${meta.name || ""}` : ""
+      }`;
       li.append(i, label, tag);
       li.addEventListener("click", () => {
         state.selectedIndex = idx;
@@ -3105,13 +3142,13 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     }
     const currentDisp = toNum(item.disp, 0);
     const isImageLikeDisp = IMAGE_DISP_IDS.has(currentDisp) || POINTER_DISP_IDS.has(currentDisp) || isLocalAssetDisp(currentDisp);
-    const isImageFont = fontStore.isImageFont(toNum(item.font, 0));
+    const fontId = resolveItemFontId(item);
+    const isImageFont = fontStore.isImageFont(fontId);
 
     editorFields.forEach((field) => {
-      const isColorField = field.key === "color_1" || field.key === "color_2";
       const hideByImageDisp = isImageLikeDisp && IMAGE_EDITOR_HIDDEN_FIELDS.has(field.key);
-      const hideByImageFont = isColorField && (isImageLikeDisp || isImageFont);
-      if (hideByImageDisp || hideByImageFont) return;
+      if (hideByImageDisp) return;
+      if (isImageFont && !IMAGE_FONT_EDITOR_VISIBLE_KEYS.has(field.key)) return;
       const wrap = document.createElement("label");
       wrap.className = "editor-field";
       if (field.full) wrap.classList.add("full");
@@ -3120,8 +3157,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       let keyLabel = t(field.labelKey);
       if (field.key === "disp") keyLabel += ` (${dispComment(toNum(item.disp, 0))})`;
       if (field.key === "font") {
-        const meta = fontStore.getMeta(toNum(item.font, 0));
-        keyLabel += meta ? ` (${meta.name || t("common.unnamed")} #${meta.id})` : ` (#${toNum(item.font, 0)})`;
+        const meta = fontStore.getMeta(fontId);
+        keyLabel += meta ? ` (${meta.name || t("common.unnamed")} #${meta.id})` : ` (#${fontId})`;
       }
       k.textContent = keyLabel;
       let input;
@@ -3133,7 +3170,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
         input = buildAlignSelectForEditor(item.alig);
         controlNode = input;
       } else if (field.key === "font") {
-        input = buildFontSelectForEditor(item.font);
+        input = buildFontSelectForEditor(fontId);
         controlNode = input;
       } else if (field.type === "color-palette") {
         const c = buildColorPaletteInputForEditor(item[field.key]);
@@ -3517,8 +3554,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     const w = Math.max(8, toNum(item.w, 120));
     const h = Math.max(8, toNum(item.h, 40));
     const angle = toNum(item.angle, 0);
+    const fontId = resolveItemFontId(item);
     const fontSize = Math.max(8, toNum(item.size ?? item.font_size, Math.min(60, Math.round(h * 0.8))));
-    const fontId = toNum(item.font, 0);
     const isImageFont = fontStore.isImageFont(fontId);
     const spacingPx = normalizeCharSpacing(item.sep, 0);
     const color1 = ensureColorHex(item.color_1, "#ffffff");
@@ -3526,7 +3563,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
 
     const drawMain = () => {
       if (isImageFont) {
-        fontStore.drawImageFontText(ctx, text, item, { x, y, w, h });
+        fontStore.drawImageFontText(ctx, text, item, { x, y, w, h }, fontId);
         return;
       }
       if (textBackgroundFill) {
@@ -4034,17 +4071,6 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       if (dom.inputBgFile) dom.inputBgFile.value = "";
       refreshBackgroundSourceLabel();
       renderWatchface();
-    });
-
-    dom.btnLoadDefaults.addEventListener("click", async () => {
-      await loadDefaultFontConfigs();
-      refreshFontPreviewSelect();
-      renderWatchface();
-      renderFontPreview();
-    });
-
-    dom.btnLoadSample.addEventListener("click", async () => {
-      await loadSampleConfig();
     });
 
     dom.btnExportConfig.addEventListener("click", exportCurrentConfig);

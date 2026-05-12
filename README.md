@@ -95,6 +95,9 @@ Under `file://`, each page is treated as an isolated origin; the app uses `fetch
 | `Open-Editor.cmd` | 仓库根目录一键本地预览（HTTP + 自动构建可选） |
 | `public/start-local-preview.cmd` | 构建后复制到 `dist/`，从 `dist` 启动时会调用根目录一键脚本 |
 
-## 相关仓库
+## 相关仓库（v2）
 
 - GitHub: https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2
+- 在线页面（GitHub Pages）: https://divoomdevelop.github.io/divoom-watchface-visual-editor_v2/
+
+本地目录 `D:\divoom-watchface-visual-editor` 为该 v2 仓库的工作副本；发布与 MCP 文档均以 **v2 仓库与上述 Pages 路径** 为准。

@@ -1,7 +1,7 @@
 {
-  "name": "divoom-watchface-visual-editor",
+  "name": "divoom-watchface-visual-editor-v2",
   "version": "0.1.0",
-  "description": "Divoom watchface visual editor (Vite + static templates)",
+  "description": "Divoom watchface visual editor v2 (Vite + static templates)",
   "private": true,
   "repository": {
     "type": "git",
