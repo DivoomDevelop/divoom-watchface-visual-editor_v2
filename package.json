@@ -14,8 +14,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run gen:ai-docs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:ai-docs": "node scripts/gen-ai-docs.mjs"
   },
   "devDependencies": {
     "http-proxy": "^1.18.1",

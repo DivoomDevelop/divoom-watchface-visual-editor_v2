@@ -290,6 +290,41 @@ button:disabled {
   font-size: 12px;
 }
 
+.local-watchface-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.local-watchface-list .local-watch-row-main {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.local-watch-delete {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.btn-compact {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.lan-dialog-body {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+#local-save-named-panel {
+  padding: 18px 20px;
+}
+
 .builtin-font-list {
   border: 1px solid #324567;
   border-radius: 8px;

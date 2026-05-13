@@ -33,18 +33,18 @@
       </label>
       <button id="btn-lan-create" type="button" class="btn-lan" disabled></button>
       <button id="btn-lan-apply" type="button" class="btn-lan" disabled></button>
-      <button id="btn-export-config" type="button">导出当前配置</button>
     </div>
   </header>
 
   <main class="layout">
     <aside class="panel left-panel">
       <section class="card">
-        <h2 id="sec-config-title">1) 表盘配置</h2>
-        <div class="field-row">
-          <label id="lbl-input-config-file" for="input-config-file">加载表盘配置(JSON)</label>
-          <input id="input-config-file" type="file" accept=".json,application/json" />
+        <h2 id="sec-local-watch-title">本地表盘</h2>
+        <div class="btn-row">
+          <button id="btn-new-watchface" type="button"></button>
         </div>
+        <div id="local-watch-hint" class="hint"></div>
+        <ul id="local-watchface-list" class="template-list local-watchface-list"></ul>
       </section>
 
       <section class="card">
@@ -122,6 +122,23 @@
       </section>
     </aside>
   </main>
+
+  <dialog id="local-save-named-dialog" class="lan-dialog">
+    <div id="local-save-named-panel">
+      <h3 id="local-save-named-title" class="lan-dialog-title"></h3>
+      <p id="local-save-named-body" class="lan-dialog-body hint"></p>
+      <label class="lan-dialog-field">
+        <span id="local-save-named-label"></span>
+        <input id="local-save-named-input" type="text" autocomplete="off" maxlength="64" />
+      </label>
+      <div class="lan-dialog-actions">
+        <button type="button" id="local-save-named-later" class="btn-ghost"></button>
+        <button type="button" id="local-save-named-discard" class="btn-ghost" hidden></button>
+        <button type="button" id="local-save-named-cancel" class="btn-ghost" hidden></button>
+        <button type="button" id="local-save-named-submit" class="btn-primary"></button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="lan-create-dialog" class="lan-dialog">
     <form id="lan-create-form">

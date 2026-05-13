@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-05-13T13:05:01.588Z",
+  "aiWatchfaceGuide": "docs/AI_WATCHFACE_GUIDE.md",
+  "schema": "docs/watchface-config.schema.json",
+  "exampleMinimal": "docs/examples/ai-minimal-watchface.json",
+  "fontCatalog": {
+    "count": 157,
+    "vectorTtfCount": 123,
+    "imageGlyphCount": 34
+  },
+  "dispCatalog": {
+    "count": 183
+  }
+}

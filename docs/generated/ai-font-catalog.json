@@ -1,0 +1,1590 @@
+{
+  "generatedAt": "2026-05-13T13:05:01.588Z",
+  "sourceFile": "public/font/font_info.cfg",
+  "summary": {
+    "count": 157,
+    "vectorTtfCount": 123,
+    "imageGlyphCount": 34
+  },
+  "rulesForModels": [
+    "Every ItemList entry uses numeric font field; MUST be one of allowedFontIds (or firmware may fall back / fail).",
+    "type 0 (image_glyph): bitmap glyph atlas — editor hides size/sep/color styling for preview; use layout rect + alig only.",
+    "type 1 (vector_ttf): TrueType — full text styling fields apply.",
+    "Device loads font files by firmware rules (often id+1 mapping); do not invent font IDs.",
+    "charset on image fonts lists drawable characters; empty charset often means full atlas handled by device."
+  ],
+  "allowedFontIds": [
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    30,
+    38,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    80,
+    82,
+    84,
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104,
+    106,
+    108,
+    110,
+    112,
+    114,
+    116,
+    118,
+    120,
+    122,
+    124,
+    126,
+    128,
+    132,
+    138,
+    140,
+    142,
+    144,
+    146,
+    148,
+    152,
+    154,
+    156,
+    158,
+    160,
+    162,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    184,
+    186,
+    188,
+    190,
+    192,
+    194,
+    196,
+    198,
+    200,
+    202,
+    204,
+    206,
+    208,
+    210,
+    212,
+    214,
+    216,
+    218,
+    220,
+    222,
+    224,
+    226,
+    228,
+    230,
+    232,
+    234,
+    236,
+    238,
+    240,
+    242,
+    246,
+    248,
+    250,
+    252,
+    254,
+    256,
+    258,
+    260,
+    262,
+    264,
+    266,
+    268,
+    270,
+    272,
+    274,
+    276,
+    278,
+    280,
+    282,
+    284,
+    286,
+    288,
+    290,
+    292,
+    294,
+    296,
+    298,
+    300,
+    302,
+    304,
+    306,
+    308,
+    310,
+    312,
+    314,
+    316,
+    318,
+    320,
+    324,
+    326,
+    328,
+    330,
+    332,
+    334,
+    336,
+    338,
+    340,
+    342,
+    344,
+    346,
+    348,
+    350,
+    352,
+    354,
+    356,
+    358,
+    360
+  ],
+  "fonts": [
+    {
+      "id": 6,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "002-Career",
+      "url": "group1/M00/02/AC/rBAAM2aXZMeEC9cHAAAAABxRByQ381.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 8,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "003-Absolute",
+      "url": "group1/M00/43/CE/eEwpPWaXZNKEPBc5AAAAAIqjT6U279.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 10,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "003-Absolute",
+      "url": "group1/M00/02/AC/rBAAM2aXZNyENeJbAAAAAIqjT6U915.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 12,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "003-Absolute",
+      "url": "group1/M00/43/CE/eEwpPWaXZOWEHC9hAAAAAIqjT6U957.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 14,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "004-Wander Brave",
+      "url": "group1/M00/02/AC/rBAAM2aXZPOEd-DxAAAAAHUg1vI388.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 16,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "005-OPPOSans Medium",
+      "url": "group1/M00/43/CF/eEwpPWaXb0SEVylVAAAAAJOW9TA500.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 18,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "006-Library 3 am",
+      "url": "group1/M00/02/AC/rBAAM2aXZROEVhhZAAAAADNLHeg786.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 20,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "007-Keep Calm",
+      "url": "group1/M00/43/CE/eEwpPWaXZR2EadRlAAAAAIvseNY679.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 22,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "008-smooth line 7",
+      "url": "group1/M00/02/AC/rBAAM2aXZSeEb3PjAAAAAEfgTSc212.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 24,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "009-DS Digital",
+      "url": "group1/M00/43/CE/eEwpPWaXZTGEROVMAAAAANI-ums867.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 26,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "001-SourceHanSans",
+      "url": "group1/M00/32/97/eEwpPWW3F6eEMAizAAAAAJ5qp1s077.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 30,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "005-OPPOSans Heavy",
+      "url": "group1/M00/43/CF/eEwpPWaXbtmEBh_cAAAAAOGpc3k071.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 38,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Alimama Square VF-Bold",
+      "url": "group1/M00/03/2C/rBAAM2bO1dyEDQPLAAAAADd9UaA558.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 48,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Parisish",
+      "url": "group1/M00/04/2B/rBAAM2c1nLSEFnIoAAAAAPAwhNQ411.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 50,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Alpin Gothic CG No2",
+      "url": "group1/M00/04/44/rBAAM2c77kuEJP3-AAAAACWOFoc952.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 52,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "OPPO Sans-Blod",
+      "url": "group1/M00/04/E9/rBAAM2dkxoyEAy2WAAAAAMlEn4Q875.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 54,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HarmonyOS_SansSC_Black",
+      "url": "group1/M00/00/55/Ci0s8Wd87ZqERDYtAAAAAFMKIZY690.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 56,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HarmonyOS_SansSC_Bold",
+      "url": "group1/M00/07/CE/rBAAM2d87dOEKCxgAAAAAH-J9-c833.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 58,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HarmonyOS_SansSC_Light",
+      "url": "group1/M00/00/55/Ci0s8Wd87giEe2ddAAAAAL812hI721.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 60,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HarmonyOS_SansSC_Medium",
+      "url": "group1/M00/00/55/Ci0s8Wd87jeEVkLkAAAAAC33IBg596.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 62,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HarmonyOS_SansSC_Regular",
+      "url": "group1/M00/07/CE/rBAAM2d87nyENJ_QAAAAAHsFVKQ070.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 64,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HarmonyOS_SansSC_Thin",
+      "url": "group1/M00/00/56/Ci0s8Wd87qOEahATAAAAAAWMZrA891.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 66,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Square pixel 12 Simplified",
+      "url": "group1/M00/0A/8A/rBAAM2ewOlaEMWC6AAAAAE0yWPU646.TTF",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 80,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Alimama Square VF-SemiBold",
+      "url": "group1/M00/03/2F/Ci0s8We2lNaEVsQlAAAAADd9UaA789.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 82,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "MesseDuesseldorf-O1d3",
+      "url": "group1/M00/03/43/Ci0s8We4Q1uEdZZbAAAAAHwIIzg560.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 84,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Big Pixel Shadowed Demo",
+      "url": "group1/M00/0A/FB/rBAAM2e5ZByENIS7AAAAAAO10O8799.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 88,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Nickainley",
+      "url": "group1/M00/0A/FE/rBAAM2e5jwqEf-t9AAAAAItwZJQ171.otf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 90,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Bebas Neue",
+      "url": "group1/M00/03/52/Ci0s8We5jzqEXidbAAAAAJ-V9bY889.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 92,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Pacifico",
+      "url": "group1/M00/0A/FE/rBAAM2e5j_OEM610AAAAANqDc7A213.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 94,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Source font",
+      "url": "group1/M00/03/72/Ci0s8We8F5OEYXciAAAAAPH2XMc766.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 96,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Open Sans —ExtraBold",
+      "url": "group1/M00/03/72/Ci0s8We8GLGEWQLjAAAAABKQy1o485.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 98,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "8-bit Arcade Out",
+      "url": "group1/M00/0D/BD/rBAAM2hTgt-EAWLpAAAAAJ76Zus030.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 100,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SourceHanSansCN-Medium",
+      "url": "group1/M00/03/80/Ci0s8We9ez-EQLZmAAAAAOo2RIQ802.otf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 102,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Upheaval TT (BRK)",
+      "url": "group1/M00/0B/32/rBAAM2e9iJiEZb0oAAAAAIgz3Zs270.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 104,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Trueno-bold",
+      "url": "group1/M00/03/A0/Ci0s8WfAKPWEA9GVAAAAAPDSx4U701.otf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 106,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Trueno-black",
+      "url": "group1/M00/0B/4F/rBAAM2fAKQaEEabPAAAAALzyb3k769.otf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 108,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Krungthep",
+      "url": "group1/M00/03/BD/Ci0s8WfC2QeENhTvAAAAACtqCwo088.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 110,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "DS-Digital Bold",
+      "url": "group1/M00/0B/C1/rBAAM2fJFHOELxKmAAAAAN1tBMI628.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 112,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "webp font Digital",
+      "url": "group1/M00/04/08/Ci0s8WfJVDeEGzvjAAAAAFB25GU874.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 114,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Big Shoulders Stencil—Regular",
+      "url": "group1/M00/04/C6/Ci0s8WfqLTSEO4MBAAAAAMAn_80336.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 116,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Audiowide",
+      "url": "group1/M00/0B/D2/rBAAM2fKmS6ENIgVAAAAAHpU-Ww334.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 118,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "TrainOne-Regular",
+      "url": "group1/M00/04/16/Ci0s8WfKvoSEBvIgAAAAANB_4Pg971.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 120,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "AllertaStencil-Regular",
+      "url": "group1/M00/0B/E0/rBAAM2fLnGKEPf8YAAAAAEkd9WA036.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 122,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "trueno-light",
+      "url": "group1/M00/0C/33/rBAAM2fSn4WEZG8fAAAAAHEnRvI639.otf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 124,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Bangers-Regular",
+      "url": "group1/M00/04/6D/Ci0s8WfSpdKEZxHiAAAAAGaqq1w185.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 126,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "全语言Tahoma",
+      "url": "group1/M00/04/6E/Ci0s8WfSukKERa4mAAAAADIuevU965.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 128,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SourceHanSans-Bold",
+      "url": "group1/M00/04/C7/Ci0s8WfqWXuEJe7YAAAAADxCP98373.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 132,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SourceHanSans-Heavy",
+      "url": "group1/M00/04/C7/Ci0s8WfqXG2EB2_3AAAAAACZDis138.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 138,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Oxford-LAqy",
+      "url": "group1/M00/04/CC/Ci0s8WfrhdWEQrgmAAAAANfGFgU417.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 140,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Bebas Neue-Regular",
+      "url": "group1/M00/04/CC/Ci0s8WfrlsyEak1wAAAAAJ-V9bY797.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 142,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Pacifico-Regular",
+      "url": "group1/M00/04/CC/Ci0s8WfrmRGEQOXuAAAAANqDc7A903.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 144,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Silkscreen-Regular",
+      "url": "group1/M00/0C/92/rBAAM2frrwOEcu_JAAAAACcpfhA265.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 146,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Dancing Script-Bold",
+      "url": "group1/M00/04/D4/Ci0s8WfuPLOETRBwAAAAAPsi6S8383.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 148,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Dancing Script-Regular",
+      "url": "group1/M00/04/D4/Ci0s8WfuPOKEA_5QAAAAAPZdSxU672.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 152,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Playfair Display-Black",
+      "url": "group1/M00/04/D5/Ci0s8WfuUi-ETkicAAAAAPnk7D8063.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 154,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Playfair Display-Black-Regular",
+      "url": "group1/M00/0C/9A/rBAAM2fuUkqEFVOkAAAAAAnJfKI431.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 156,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Coiny-Regular",
+      "url": "group1/M00/04/F6/Ci0s8Wf4zSuETmr8AAAAAB7bOmc203.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 158,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SoukouMincho",
+      "url": "group1/M00/05/3D/Ci0s8WgN5myEKcZgAAAAAJ_dEU0012.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 160,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "ZCOOL KuaiLe",
+      "url": "group1/M00/0D/01/rBAAM2gN8xSESmQVAAAAAGTt4ro023.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 162,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "HanaMin",
+      "url": "group1/M00/05/41/Ci0s8WgPO1SEWW1VAAAAAIqU8ik974.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 164,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Libre_Baskerville-Regular",
+      "url": "group1/M00/0D/05/rBAAM2gPN_6EHYTGAAAAAIkLBeQ476.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 166,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Pacifico-Regular",
+      "url": "group1/M00/05/42/Ci0s8WgPSaCETgOGAAAAANqDc7A438.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 168,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Pangmen Zhengdao Bold Script",
+      "url": "group1/M00/0D/06/rBAAM2gPTBeEVHVnAAAAAIpnrUE444.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 170,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Alimama Square Medium",
+      "url": "group1/M00/0D/42/rBAAM2gkDymEB-0XAAAAAJ2ElaE298.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 172,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Alimama Square SemiBold",
+      "url": "group1/M00/0D/43/rBAAM2gkTmyEFcxUAAAAAKobP0c284.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 174,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Rock_Salt",
+      "url": "group1/M00/0D/71/rBAAM2g0Lt-EGrN2AAAAADEJzS0227.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 176,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Caveat-Regular",
+      "url": "group1/M00/05/CA/Ci0s8WhAB7iEG596AAAAAHjN_-0703.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 178,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Libre Baskerville-Bold",
+      "url": "group1/M00/0D/9D/rBAAM2hGtSmEQ_5IAAAAAOQDqKs866.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 180,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Bitrimus",
+      "url": "group1/M00/0D/A7/rBAAM2hKi1CEUqQIAAAAAEaHoso495.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 182,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "EmojiFont",
+      "url": "group1/M00/05/F3/Ci0s8WhP95yEcbaNAAAAAB60hXA197.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 184,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "思源宋体SemiBold",
+      "url": "group1/M00/05/F9/Ci0s8WhSeBGEAx8xAAAAACPWyz8060.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 186,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "ZCOOL GAODUANHEI",
+      "url": "group1/M00/05/FB/Ci0s8WhTbsCEcTKrAAAAALGEm84255.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 188,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "AlimamaAgileVF-Thin",
+      "url": "group1/M00/05/FB/Ci0s8WhTfUCEXnjqAAAAAN_iCVY705.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 190,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Bitrimus",
+      "url": "group1/M00/0D/BD/rBAAM2hTfw-EQiK9AAAAAEaHoso286.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 192,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "汇文港黑v1.001",
+      "url": "group1/M00/05/FB/Ci0s8WhTgJ-EaPsmAAAAABHtHIg205.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 194,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "京东朗正体",
+      "url": "group1/M00/0D/BD/rBAAM2hTgOGEBaqzAAAAAAtVg_c909.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 196,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "站酷酷黑体",
+      "url": "group1/M00/05/FB/Ci0s8WhTgP6EVH7LAAAAAOAFlks883.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 198,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Adrenaline-Regular",
+      "url": "group1/M00/0D/BD/rBAAM2hTgTSEPJAKAAAAAC229Mo124.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 200,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "阿里巴巴普惠体-Heavy",
+      "url": "group1/M00/05/FB/Ci0s8WhTgWSEOvJkAAAAAB4smZs509.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 202,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "BAUHS93",
+      "url": "group1/M00/0D/BD/rBAAM2hTgYCEaKCOAAAAANffYt8456.TTF",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 204,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "BukhariScript-lemD",
+      "url": "group1/M00/05/FB/Ci0s8WhTgaiEZ9pqAAAAAPWSdds209.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 206,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "DingTalk JinBuTi",
+      "url": "group1/M00/0D/BD/rBAAM2hTggWETMdDAAAAAC_p3cU023.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 208,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Nunito-Regular",
+      "url": "group1/M00/05/FB/Ci0s8WhTghmESeHkAAAAABBi7ms638.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 210,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Nunito-Black",
+      "url": "group1/M00/0D/BD/rBAAM2hTgiyEZX3fAAAAAGziRmU918.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 212,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "DroidSerif",
+      "url": "group1/M00/05/FB/Ci0s8WhTglGEW1qvAAAAADHMEwM112.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 214,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "GLECB",
+      "url": "group1/M00/0D/BD/rBAAM2hTgnKEG4NJAAAAAMf3-ck025.TTF",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 216,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Silkscreen-Bold",
+      "url": "group1/M00/05/FB/Ci0s8WhTgouELGGsAAAAAMO2_RM540.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 218,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "GOST Common Italic",
+      "url": "group1/M00/0D/BD/rBAAM2hTgp6EGnu0AAAAANgN2SM990.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 220,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "GOST Common",
+      "url": "group1/M00/05/FB/Ci0s8WhTgriEVC2AAAAAAO_zbZE906.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 222,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "8-bit Arcade In",
+      "url": "group1/M00/05/FB/Ci0s8WhTgvGEGI4wAAAAAG0P-Xc557.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 224,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "IMPRISHA",
+      "url": "group1/M00/0D/BD/rBAAM2hTg2aEA_LGAAAAAF_Mrk8917.TTF",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 226,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "INFROMAN",
+      "url": "group1/M00/05/FB/Ci0s8WhTg4GEaUsnAAAAAHL5tKc972.TTF",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 228,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "LeagueGothic-Condensed",
+      "url": "group1/M00/0D/BD/rBAAM2hTg6aEX2kfAAAAANWKTaI941.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 230,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "LeagueGothic-Regular",
+      "url": "group1/M00/05/FB/Ci0s8WhTg7yEOEaJAAAAABn2OD8935.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 232,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Project Space",
+      "url": "group1/M00/0D/BD/rBAAM2hTg9mERTYOAAAAAKd80zI226.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 234,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "RL Madena Variable",
+      "url": "group1/M00/05/FB/Ci0s8WhThBCEZrxnAAAAAKVJBZM878.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 236,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Shrikhand-Regular",
+      "url": "group1/M00/0D/BD/rBAAM2hThF2EBftdAAAAABP7SdM711.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 238,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "思源宋体 SC-Bold",
+      "url": "group1/M00/05/FB/Ci0s8WhThKqEPaMUAAAAABi-R7E844.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 240,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SourceHanSerifSC-ExtraLight",
+      "url": "group1/M00/0D/BD/rBAAM2hThRGEPGQaAAAAAK9DlpQ014.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 242,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SourceHanSerifSC-Heavy",
+      "url": "group1/M00/05/FB/Ci0s8WhThVuEX0p7AAAAAAFyYro640.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 246,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SourceHanSerifSC-SemiBold",
+      "url": "group1/M00/05/FB/Ci0s8WhThg6EGYwHAAAAADDniXk751.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 248,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "verdanaz",
+      "url": "group1/M00/0D/BD/rBAAM2hThiqEIYETAAAAAANNqu4562.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 250,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "vinet",
+      "url": "group1/M00/05/FB/Ci0s8WhThkGETeVIAAAAANs_um0786.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 252,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "优设标题黑",
+      "url": "group1/M00/0D/BD/rBAAM2hThl-EagNSAAAAAC3xP4c793.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 254,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "字制区喜脉喜欢体",
+      "url": "group1/M00/05/FB/Ci0s8WhThraEa5CfAAAAAK3n2tY458.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 256,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "70*86",
+      "url": "group1/M00/0D/DE/rBAAM2hfn66EKnvKAAAAADlQi6o019.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 258,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "20*26",
+      "url": "group1/M00/06/22/Ci0s8WhiM7eEM0ELAAAAANhuTqg292.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 260,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "AaCaoLeSongMianBaoYuan",
+      "url": "group1/M00/06/25/Ci0s8WhjqzqEN2aUAAAAAOHUbQY816.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 262,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "Blue time font",
+      "url": "group1/M00/06/25/Ci0s8WhjpfaES3HwAAAAAMKI4l8703.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 264,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "walbaum-fraktur.bold",
+      "url": "group1/M00/0D/FD/rBAAM2hs3PaEZCHhAAAAAPGC5uM680.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 266,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "OleoScript-Bold",
+      "url": "group1/M00/0D/FD/rBAAM2hs8p-EAkq0AAAAAGgmvRE253.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 268,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "Pixel Machine Font 1",
+      "url": "group1/M00/0E/07/rBAAM2hwrg2EEjP4AAAAAN9aD1g788.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 270,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "Pixel Machine Font 1",
+      "url": "group1/M00/06/46/Ci0s8WhwrSmEcuWEAAAAAMAv_CA803.bin",
+      "charsetLength": 26,
+      "charsetPreview": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    },
+    {
+      "id": 272,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "ArcadeClassic",
+      "url": "group1/M00/0E/04/rBAAM2hva1uEZfzoAAAAAIAxizs788.TTF",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 274,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Upheaval TT (BRK)",
+      "url": "group1/M00/0E/04/rBAAM2hva52Eec24AAAAAIgz3Zs950.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 276,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "ProggyClean Regular",
+      "url": "group1/M00/0E/04/rBAAM2hva-2ERNT4AAAAAPA8VBI553.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 278,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "Pastel Dream font",
+      "url": "group1/M00/0E/08/rBAAM2hwxxSECK9qAAAAAPI4NL0732.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 280,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "波普艺术手写字体1",
+      "url": "group1/M00/0E/0B/rBAAM2hyL6WEMWzuAAAAAPejOmQ746.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 282,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "波普艺术手写字体2",
+      "url": "group1/M00/0E/0B/rBAAM2hyEHuEUZLUAAAAANj3QqY144.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 284,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Hisham LT Regular",
+      "url": "group1/M00/0E/13/rBAAM2h0pnmEYpHTAAAAAN1bgI8619.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 286,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Futura LT Bold",
+      "url": "group1/M00/0E/13/rBAAM2h0yNuEeUumAAAAAFkjET8733.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 288,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Mexican Tequila",
+      "url": "group1/M00/0E/17/rBAAM2h197OEXGK-AAAAAJ22KE8820.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 290,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "像素霓城字体（紫）",
+      "url": "group1/M00/06/55/Ci0s8Wh2EpiEY-2RAAAAAEvFCgc850.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 292,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "像素霓城字体（蓝）",
+      "url": "group1/M00/0E/17/rBAAM2h2E9-ERzCsAAAAAKvgCbA679.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 294,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "警戒信号烟雾字体",
+      "url": "group1/M00/0E/1B/rBAAM2h3bQqEaDxcAAAAAM7QAYY256.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 296,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "海底泡泡屋时间字体",
+      "url": "group1/M00/0E/1E/rBAAM2h4x3WEGQn-AAAAAJonPUM619.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 298,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Galmuri11-Bold",
+      "url": "group1/M00/06/5D/Ci0s8Wh40AGEfsppAAAAAIfQMGI926.ttf",
+      "charsetLength": 64,
+      "charsetPreview": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-°"
+    },
+    {
+      "id": 300,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Galmuri7",
+      "url": "group1/M00/06/60/Ci0s8Wh57lWEWaIqAAAAAJbZHQ8833.ttf",
+      "charsetLength": 62,
+      "charsetPreview": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    },
+    {
+      "id": 302,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "咩咩好心情手写体1",
+      "url": "group1/M00/06/60/Ci0s8Wh5-1iEE7-aAAAAAF4P_ew517.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 304,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "咩咩好心情手写体2",
+      "url": "group1/M00/06/60/Ci0s8Wh5_7CEPYArAAAAAJpRhYw876.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 306,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "咔滋一口不规则数字",
+      "url": "group1/M00/0E/2C/rBAAM2h96m6EPkHKAAAAAHbuLg0491.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 308,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "波普艺术方形绿色数字",
+      "url": "group1/M00/0E/30/rBAAM2h_OLSEanI2AAAAAI5IrBU384.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 310,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "波普艺术方形粉色数字",
+      "url": "group1/M00/06/6F/Ci0s8Wh_OjmEKZMQAAAAAGsKkPo537.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 312,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Jack Armstrong",
+      "url": "group1/M00/06/6F/Ci0s8Wh_OsyEUnLKAAAAAPxswkI443.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 314,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "黑色描边手绘数字",
+      "url": "group1/M00/06/8D/Ci0s8WiHMX6EATWMAAAAAHdzIdI216.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 316,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "橙色铅笔手绘数字",
+      "url": "group1/M00/06/A1/Ci0s8WiJi0OEVKPOAAAAAIoBJWo998.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 318,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Great Vibes",
+      "url": "group1/M00/0E/B0/rBAAM2iR1OGEeUQrAAAAALosBjY346.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 320,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Caveat-bold",
+      "url": "group1/M00/07/57/Ci0s8Wierm2EQfVYAAAAAG5p1oY640.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 324,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "粉色玻璃数字",
+      "url": "group1/M00/07/A2/Ci0s8WipXvOEACs3AAAAADqDpD8869.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 326,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "蒸汽波渐变数字",
+      "url": "group1/M00/0F/76/rBAAM2ir0d6EGUUAAAAAANCg-D4863.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 328,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Tahoma_Bold",
+      "url": "group1/M00/0F/95/rBAAM2ivwL2EIEK9AAAAAL-WmQ8835.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 330,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "粘土数字",
+      "url": "group1/M00/0F/FD/rBAAM2i_4JiEOjwKAAAAAKQLfQA569.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 332,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "小虎购物日粉色数字",
+      "url": "group1/M00/08/73/Ci0s8WjJCduEJrxwAAAAAIoVP1c128.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 334,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "小虎购物日蓝色数字",
+      "url": "group1/M00/08/74/Ci0s8WjJHrSEfBTnAAAAAEG0Mbs117.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 336,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "SuperFoods",
+      "url": "group1/M00/10/33/rBAAM2jJKDiEfHOFAAAAANAmVu8952.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 338,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "Spectral SC-ExtraBold",
+      "url": "group1/M00/09/70/Ci0s8Wj3LOWENkT3AAAAAFtdGo8249.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 340,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "彩虹手账时间数字",
+      "url": "group1/M00/11/38/rBAAM2j4dFOEXZybAAAAABRROIs121.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 342,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "彩虹手账温度数字",
+      "url": "group1/M00/11/38/rBAAM2j4dvCEI23LAAAAAMumuxE963.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 344,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "彩虹手账日期数字",
+      "url": "group1/M00/09/78/Ci0s8Wj4gWmEFEI3AAAAANXitnU228.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 346,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "跨年报纸倒计时数字",
+      "url": "group1/M00/0A/6D/Ci0s8WkcHCWEN2n3AAAAABoQfUg732.bin",
+      "charsetLength": 15,
+      "charsetPreview": "0123456789adoTy"
+    },
+    {
+      "id": 348,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "节气画历-温度/年份-月份字体",
+      "url": "group1/M00/12/AF/rBAAM2kusK2EDYoEAAAAAACgtvI500.bin",
+      "charsetLength": 13,
+      "charsetPreview": "0123456789.-/"
+    },
+    {
+      "id": 350,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "节气画历日期数字",
+      "url": "group1/M00/0A/D5/Ci0s8WkqmwKEba7FAAAAAPA3dWY226.bin",
+      "charsetLength": 10,
+      "charsetPreview": "0123456789"
+    },
+    {
+      "id": 352,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "节气画历农历字体",
+      "url": "group1/M00/0A/F0/Ci0s8WkuQMGEEANJAAAAABrtAPo828.bin",
+      "charsetLength": 16,
+      "charsetPreview": "0123456789cdlnyz"
+    },
+    {
+      "id": 354,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "几何拼贴小字体",
+      "url": "group1/M00/0C/0E/Ci0s8WlN5EiEBHh0AAAAAMUBq2s999.bin",
+      "charsetLength": 12,
+      "charsetPreview": "0123456789°-"
+    },
+    {
+      "id": 356,
+      "type": 0,
+      "typeLabel": "image_glyph",
+      "name": "",
+      "url": "group1/M00/14/22/rBAAM2lUkBWEU0TSAAAAAPhLyP8970.bin",
+      "charsetLength": 12,
+      "charsetPreview": "0123456789°-"
+    },
+    {
+      "id": 358,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "CaveatBrush-Regular",
+      "url": "group1/M00/0C/6A/Ci0s8WlUzsSEP-wEAAAAAMpPjFQ480.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    },
+    {
+      "id": 360,
+      "type": 1,
+      "typeLabel": "vector_ttf",
+      "name": "站酷庆科黄油体",
+      "url": "group1/M00/14/C7/rBAAM2llrpaEGYMsAAAAAIa2ehc251.ttf",
+      "charsetLength": 0,
+      "charsetPreview": ""
+    }
+  ]
+}

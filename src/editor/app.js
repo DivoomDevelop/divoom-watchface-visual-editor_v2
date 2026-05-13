@@ -8,6 +8,15 @@ import {
   getLocaleCode,
   t
 } from "../i18n/index.js";
+import {
+  listWatchfaces,
+  upsert,
+  removeWatchface,
+  getWatchface,
+  setLastActiveId,
+  getLastActiveId,
+  newWatchfaceId
+} from "./localWatchfacesStore.js";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
@@ -1903,14 +1912,15 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     lblLanDevice: byId("lbl-lan-device"),
     selectLanDevice: byId("select-lan-device"),
     btnRefreshLanDevices: byId("btn-refresh-lan-devices"),
-    secConfigTitle: byId("sec-config-title"),
+    secLocalWatchTitle: byId("sec-local-watch-title"),
+    btnNewWatchface: byId("btn-new-watchface"),
+    localWatchHint: byId("local-watch-hint"),
+    localWatchfaceList: byId("local-watchface-list"),
     secTemplateTitle: byId("sec-template-title"),
     secCanvasTitle: byId("sec-canvas-title"),
     secBackgroundTitle: byId("sec-background-title"),
     secItemlistTitle: byId("sec-itemlist-title"),
     secEditorTitle: byId("sec-editor-title"),
-    lblInputConfigFile: byId("lbl-input-config-file"),
-    lblTxtConfigJson: byId("lbl-txt-config-json"),
     lblTemplateCategory: byId("lbl-template-category"),
     lblInputZoom: byId("lbl-input-zoom"),
     lblInputBgFile: byId("lbl-input-bg-file"),
@@ -1921,10 +1931,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     legendImage: byId("legend-image"),
     legendText: byId("legend-text"),
     legendPointer: byId("legend-pointer"),
-    inputConfigFile: byId("input-config-file"),
-    txtConfigJson: byId("txt-config-json"),
-    btnApplyJson: byId("btn-apply-json"),
-    btnClearJson: byId("btn-clear-json"),
     selectTemplateCategory: byId("select-template-category"),
     btnReloadTemplates: byId("btn-reload-templates"),
     templateHint: byId("template-hint"),
@@ -1935,7 +1941,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     txtBgSourcePath: byId("txt-bg-source-path"),
     btnClearBg: byId("btn-clear-bg"),
     btnFitResolution: byId("btn-fit-resolution"),
-    btnExportConfig: byId("btn-export-config"),
     btnLanCreate: byId("btn-lan-create"),
     btnLanApply: byId("btn-lan-apply"),
     lanCreateDialog: byId("lan-create-dialog"),
@@ -1945,6 +1950,15 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     lanCreateSubmit: byId("lan-create-submit"),
     lanCreateTitle: byId("lan-create-title"),
     lanCreateLabelText: byId("lan-create-label-text"),
+    localSaveNamedDialog: byId("local-save-named-dialog"),
+    localSaveNamedTitle: byId("local-save-named-title"),
+    localSaveNamedBody: byId("local-save-named-body"),
+    localSaveNamedLabel: byId("local-save-named-label"),
+    localSaveNamedInput: byId("local-save-named-input"),
+    localSaveNamedLater: byId("local-save-named-later"),
+    localSaveNamedDiscard: byId("local-save-named-discard"),
+    localSaveNamedCancel: byId("local-save-named-cancel"),
+    localSaveNamedSubmit: byId("local-save-named-submit"),
     // Left font resource panel is removed, keep these optional for compatibility.
     inputFontFilter: byId("input-font-filter"),
     builtinFontList: byId("builtin-font-list"),
@@ -2009,6 +2023,28 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   };
 
   let lanBaselineSignature = "";
+
+  /** 本地表盘当前条目 id（空 = 未绑定已命名本地保存） */
+  let activeLocalWatchfaceId = "";
+  /** 判断相对上次保存/加载是否有修改（含未命名草稿） */
+  let workspaceBaselineSig = "";
+  let namingPromptDismissed = false;
+  let autosaveTimer = 0;
+  let namingDebounceTimer = 0;
+  let saveNamedDialogResolver = null;
+
+  function syncWorkspaceBaseline() {
+    workspaceBaselineSig = getLanDirtySnapshot();
+  }
+
+  function isWorkspaceDirtyVsBaseline() {
+    if (!workspaceBaselineSig) return false;
+    return getLanDirtySnapshot() !== workspaceBaselineSig;
+  }
+
+  function isWorkspaceDirtyUnsaved() {
+    return isWorkspaceDirtyVsBaseline() && !activeLocalWatchfaceId;
+  }
 
   const templateState = {
     ids: [],
@@ -2249,27 +2285,21 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       dom.selectLanDevice.options[0].textContent = t("lan.device.placeholder");
     }
 
-    setNodeText(dom.secConfigTitle, t("ui.sec.config"));
+    setNodeText(dom.secLocalWatchTitle, t("ui.sec.localWatch"));
     setNodeText(dom.secTemplateTitle, t("ui.sec.template"));
     setNodeText(dom.secCanvasTitle, t("ui.sec.canvas"));
     setNodeText(dom.secBackgroundTitle, t("ui.sec.background"));
     setNodeText(dom.secItemlistTitle, t("ui.sec.items"));
     setNodeText(dom.secEditorTitle, t("ui.sec.editor"));
 
-    setNodeText(dom.lblInputConfigFile, t("ui.label.loadConfig"));
-    setNodeText(dom.lblTxtConfigJson, t("ui.label.pasteJson"));
+    if (dom.btnNewWatchface) setNodeText(dom.btnNewWatchface, t("ui.btn.newWatchface"));
     setNodeText(dom.lblTemplateCategory, getTemplateCategoryLabelText());
     setNodeText(dom.lblInputZoom, t("ui.label.zoom"));
     setNodeText(dom.lblInputBgFile, t("ui.label.bgFile"));
     if (dom.lblBgSourcePath) setNodeText(dom.lblBgSourcePath, t("ui.label.bgSourcePath"));
-    if (dom.txtConfigJson) dom.txtConfigJson.placeholder = t("ui.placeholder.configJson");
-
-    setNodeText(dom.btnApplyJson, t("ui.btn.applyJson"));
-    setNodeText(dom.btnClearJson, t("ui.btn.clearJson"));
     setNodeText(dom.btnReloadTemplates, t("ui.btn.reloadTemplates"));
     setNodeText(dom.btnClearBg, t("ui.btn.clearBg"));
     setNodeText(dom.btnFitResolution, t("ui.btn.applyResolution"));
-    setNodeText(dom.btnExportConfig, t("ui.btn.export"));
     setNodeText(dom.btnLanCreate, t("ui.btn.lanCreate"));
     setNodeText(dom.btnLanApply, t("ui.btn.lanApply"));
     if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.title"));
@@ -2325,6 +2355,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     renderWatchface();
     renderFontPreview();
     refreshLanActionButtons();
+    refreshLocalWatchfaceListUi();
   }
 
   function createDefaultItem(index) {
@@ -2588,6 +2619,356 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
   function onLocalConfigEdited() {
     refreshLanActionButtons();
+    scheduleWorkspaceAutosave();
+    scheduleDeferredNamingPrompt();
+  }
+
+  function scheduleWorkspaceAutosave() {
+    if (!activeLocalWatchfaceId) return;
+    window.clearTimeout(autosaveTimer);
+    autosaveTimer = window.setTimeout(() => {
+      void flushPersistActiveWorkspace();
+    }, 550);
+  }
+
+  function scheduleDeferredNamingPrompt() {
+    window.clearTimeout(namingDebounceTimer);
+    namingDebounceTimer = window.setTimeout(() => {
+      void maybeOpenFirstEditNamingDialog();
+    }, 480);
+  }
+
+  function finishLocalSaveNamedDialog(result) {
+    try {
+      dom.localSaveNamedDialog?.close();
+    } catch (e) {
+      /* ignore */
+    }
+    const fn = saveNamedDialogResolver;
+    saveNamedDialogResolver = null;
+    if (fn) fn(result);
+  }
+
+  function openLocalSaveNamedDialog({ mode, context }) {
+    return new Promise((resolve) => {
+      saveNamedDialogResolver = resolve;
+      const blocking = mode === "blocking";
+      if (dom.localSaveNamedLater) dom.localSaveNamedLater.hidden = blocking;
+      if (dom.localSaveNamedDiscard) dom.localSaveNamedDiscard.hidden = !blocking;
+      if (dom.localSaveNamedCancel) dom.localSaveNamedCancel.hidden = !blocking;
+
+      if (blocking) {
+        setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleBlocking"));
+        const bodyKey =
+          context === "template"
+            ? "localWatch.dialog.bodyBlockingTemplate"
+            : "localWatch.dialog.bodyBlockingLeave";
+        setNodeText(dom.localSaveNamedBody, t(bodyKey));
+      } else {
+        setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleFirst"));
+        setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyFirst"));
+      }
+      setNodeText(dom.localSaveNamedLabel, t("localWatch.dialog.nameLabel"));
+      setNodeText(dom.localSaveNamedLater, t("localWatch.dialog.later"));
+      setNodeText(dom.localSaveNamedDiscard, t("localWatch.dialog.discard"));
+      setNodeText(dom.localSaveNamedCancel, t("lan.dialog.cancel"));
+      setNodeText(dom.localSaveNamedSubmit, t("localWatch.dialog.save"));
+
+      if (dom.localSaveNamedInput) {
+        dom.localSaveNamedInput.value = getClockDisplayName(state.config) || "";
+      }
+      dom.localSaveNamedDialog?.showModal();
+      window.requestAnimationFrame(() => {
+        dom.localSaveNamedInput?.focus();
+        dom.localSaveNamedInput?.select?.();
+      });
+    });
+  }
+
+  async function maybeOpenFirstEditNamingDialog() {
+    if (activeLocalWatchfaceId) return;
+    if (namingPromptDismissed) return;
+    if (!isWorkspaceDirtyVsBaseline()) return;
+    if (dom.localSaveNamedDialog?.open) return;
+
+    const r = await openLocalSaveNamedDialog({ mode: "first_edit" });
+    if (r.action === "save") {
+      const nm = String(r.name || "").trim();
+      if (!nm) {
+        alert(t("lan.err.emptyName"));
+        return;
+      }
+      await persistNewNamedWatchface(nm);
+    } else if (r.action === "later") {
+      namingPromptDismissed = true;
+    }
+  }
+
+  async function imageToDataUrlForPersist(img) {
+    if (!img || !img.complete || img.naturalWidth <= 0) return null;
+    try {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      return c.toDataURL("image/jpeg", 0.9);
+    } catch {
+      return null;
+    }
+  }
+
+  async function flushPersistActiveWorkspace() {
+    if (!activeLocalWatchfaceId) return;
+    const existing = getWatchface(activeLocalWatchfaceId);
+    const nm = String(
+      getClockDisplayName(state.config) || existing?.name || t("ui.default.untitled")
+    ).trim();
+    const bgUrl = await imageToDataUrlForPersist(state.backgroundImage);
+    syncItemIdList();
+    const previewOverrides = Object.fromEntries(state.previewTextOverrides);
+    const rec = {
+      id: activeLocalWatchfaceId,
+      name: nm,
+      updatedAt: Date.now(),
+      config: JSON.parse(JSON.stringify(state.config)),
+      backgroundDataUrl: bgUrl,
+      backgroundName: state.backgroundName || "",
+      backgroundSourceLabel: state.backgroundSourceLabel || "",
+      width: state.width,
+      height: state.height,
+      zoom: state.zoom,
+      previewOverrides,
+      templateActiveClockId: templateState.activeClockId
+    };
+    try {
+      upsert(rec);
+      workspaceBaselineSig = getLanDirtySnapshot();
+      refreshLocalWatchfaceListUi();
+    } catch (e) {
+      alert(t("localWatch.errQuota", { message: errorToText(e) }));
+    }
+  }
+
+  async function persistNewNamedWatchface(name) {
+    const nm = String(name || "").trim();
+    if (!nm) return;
+    const id = newWatchfaceId();
+    activeLocalWatchfaceId = id;
+    state.config.NameCn = nm;
+    state.config.NameEn = nm;
+    dom.txtClockTitle.textContent = nm;
+    rebuildItemEditor();
+    await flushPersistActiveWorkspace();
+    setLastActiveId(id);
+    captureLanBaseline();
+    syncWorkspaceBaseline();
+    refreshLocalWatchfaceListUi();
+    fontStore.log(t("localWatch.savedAs", { name: nm }));
+  }
+
+  async function ensureWorkspaceHandledBeforeSwitch(context) {
+    window.clearTimeout(namingDebounceTimer);
+    if (!isWorkspaceDirtyVsBaseline()) return true;
+    if (activeLocalWatchfaceId) {
+      await flushPersistActiveWorkspace();
+      return true;
+    }
+    const r = await openLocalSaveNamedDialog({ mode: "blocking", context });
+    if (r.action === "cancel") return false;
+    if (r.action === "discard") {
+      namingPromptDismissed = false;
+      return true;
+    }
+    if (r.action === "later") return false;
+    if (r.action === "save") {
+      const nm = String(r.name || "").trim();
+      if (!nm) {
+        alert(t("lan.err.emptyName"));
+        return false;
+      }
+      await persistNewNamedWatchface(nm);
+      return true;
+    }
+    return false;
+  }
+
+  function refreshLocalWatchfaceListUi() {
+    const ul = dom.localWatchfaceList;
+    if (!ul) return;
+    const rows = listWatchfaces();
+    if (dom.localWatchHint) {
+      dom.localWatchHint.textContent =
+        rows.length === 0 ? t("localWatch.listEmpty") : t("localWatch.listHint");
+    }
+    ul.innerHTML = "";
+    for (const row of rows) {
+      const li = document.createElement("li");
+      if (row.id === activeLocalWatchfaceId) li.classList.add("active");
+      const main = document.createElement("div");
+      main.className = "local-watch-row-main";
+      const title = document.createElement("span");
+      title.className = "template-id";
+      title.textContent = row.name || row.id;
+      const meta = document.createElement("span");
+      meta.className = "template-file";
+      const ts = row.updatedAt ? new Date(row.updatedAt).toLocaleString() : "";
+      meta.textContent = ts;
+      main.append(title, meta);
+      main.addEventListener("click", () => {
+        void loadLocalWatchfaceById(row.id);
+      });
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "btn-ghost btn-compact local-watch-delete";
+      del.setAttribute("aria-label", t("localWatch.deleteAria"));
+      del.textContent = "×";
+      del.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        void deleteLocalWatchface(row.id);
+      });
+      li.append(main, del);
+      ul.appendChild(li);
+    }
+  }
+
+  async function restoreWorkspaceFromRecord(rec) {
+    applyConfig(rec.config, t("localWatch.loaded", { name: rec.name }));
+    state.previewTextOverrides = new Map(Object.entries(rec.previewOverrides || {}));
+    state.width = clamp(toNum(rec.width, 800), 64, 4000);
+    state.height = clamp(toNum(rec.height, 1280), 64, 4000);
+    state.zoom = clamp(toNum(rec.zoom, 55), 20, 220);
+    if (dom.inputZoom) dom.inputZoom.value = String(state.zoom);
+    if (dom.txtZoom) dom.txtZoom.textContent = `${Math.round(state.zoom)}%`;
+    templateState.activeClockId =
+      rec.templateActiveClockId != null ? rec.templateActiveClockId : null;
+    refreshTemplateListUi();
+
+    if (rec.backgroundDataUrl) {
+      try {
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            clearBackgroundObjectUrl();
+            state.backgroundImage = img;
+            state.backgroundName = rec.backgroundName || "";
+            state.backgroundSourceLabel = rec.backgroundSourceLabel || "";
+            resolve();
+          };
+          img.onerror = () => reject(new Error("bg"));
+          img.src = rec.backgroundDataUrl;
+        });
+      } catch {
+        clearBackgroundObjectUrl();
+        state.backgroundImage = null;
+        state.backgroundName = "";
+        state.backgroundSourceLabel = "";
+      }
+    } else {
+      clearBackgroundObjectUrl();
+      state.backgroundImage = null;
+      state.backgroundName = "";
+      state.backgroundSourceLabel = "";
+    }
+    refreshBackgroundSourceLabel();
+    rebuildItemEditor();
+    renderWatchface();
+    applyCanvasZoom();
+    captureLanBaseline();
+    syncWorkspaceBaseline();
+  }
+
+  async function loadLocalWatchfaceById(id) {
+    if (!id) return;
+    const ok = await ensureWorkspaceHandledBeforeSwitch("pick_other");
+    if (!ok) return;
+    const rec = getWatchface(id);
+    if (!rec) return;
+    activeLocalWatchfaceId = id;
+    setLastActiveId(id);
+    await restoreWorkspaceFromRecord(rec);
+    namingPromptDismissed = true;
+    refreshLocalWatchfaceListUi();
+  }
+
+  async function deleteLocalWatchface(id) {
+    if (!id) return;
+    if (!confirm(t("localWatch.confirmDelete"))) return;
+    removeWatchface(id);
+    if (getLastActiveId() === id) setLastActiveId("");
+    if (activeLocalWatchfaceId === id) {
+      activeLocalWatchfaceId = "";
+      templateState.activeClockId = null;
+      refreshTemplateListUi();
+      clearBackgroundObjectUrl();
+      state.backgroundImage = null;
+      state.backgroundName = "";
+      state.backgroundSourceLabel = "";
+      if (dom.inputBgFile) dom.inputBgFile.value = "";
+      refreshBackgroundSourceLabel();
+      applyConfig(
+        {
+          ClockId: 0,
+          NameCn: t("ui.default.untitled"),
+          NameEn: "Untitled",
+          ItemList: [createDefaultItem(0)]
+        },
+        t("localWatch.deletedReset")
+      );
+      namingPromptDismissed = false;
+      syncWorkspaceBaseline();
+    }
+    refreshLocalWatchfaceListUi();
+  }
+
+  async function startNewBlankWatchface() {
+    const ok = await ensureWorkspaceHandledBeforeSwitch("new");
+    if (!ok) return;
+    activeLocalWatchfaceId = "";
+    templateState.activeClockId = null;
+    refreshTemplateListUi();
+    clearBackgroundObjectUrl();
+    state.backgroundImage = null;
+    state.backgroundName = "";
+    state.backgroundSourceLabel = "";
+    if (dom.inputBgFile) dom.inputBgFile.value = "";
+    refreshBackgroundSourceLabel();
+    applyConfig(
+      {
+        ClockId: 0,
+        NameCn: t("ui.default.untitled"),
+        NameEn: "Untitled",
+        ItemList: [createDefaultItem(0)]
+      },
+      t("localWatch.newBlank")
+    );
+    namingPromptDismissed = false;
+    syncWorkspaceBaseline();
+    refreshLocalWatchfaceListUi();
+  }
+
+  function wireLocalWatchDialogs() {
+    dom.localSaveNamedLater?.addEventListener("click", () => {
+      finishLocalSaveNamedDialog({ action: "later" });
+    });
+    dom.localSaveNamedDiscard?.addEventListener("click", () => {
+      finishLocalSaveNamedDialog({ action: "discard" });
+    });
+    dom.localSaveNamedCancel?.addEventListener("click", () => {
+      finishLocalSaveNamedDialog({ action: "cancel" });
+    });
+    dom.localSaveNamedSubmit?.addEventListener("click", () => {
+      const nm = String(dom.localSaveNamedInput?.value || "").trim();
+      if (!nm) {
+        alert(t("lan.err.emptyName"));
+        return;
+      }
+      finishLocalSaveNamedDialog({ action: "save", name: nm });
+    });
+    dom.localSaveNamedDialog?.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      finishLocalSaveNamedDialog({ action: "cancel" });
+    });
   }
 
   let lanDeviceRowsById = new Map();
@@ -2778,8 +3159,13 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       fontStore.log(t("lan.success.create"));
       alert(t("lan.success.create"));
       captureLanBaseline();
+      if (activeLocalWatchfaceId) await flushPersistActiveWorkspace();
+      refreshLocalWatchfaceListUi();
     } catch (e) {
       alert(errorToText(e));
+      refreshLanActionButtons();
+    } finally {
+      if (btn) btn.disabled = false;
       refreshLanActionButtons();
     }
   }
@@ -3149,8 +3535,15 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     const id = toNum(clockId, NaN);
     if (!Number.isFinite(id)) return;
 
+    const proceed = await ensureWorkspaceHandledBeforeSwitch("template");
+    if (!proceed) return;
+
+    window.clearTimeout(namingDebounceTimer);
+
     const token = ++templateState.loadToken;
     templateState.activeClockId = id;
+    activeLocalWatchfaceId = "";
+    namingPromptDismissed = false;
     refreshTemplateListUi();
     fontStore.log(t("log.templateApplying", { id }));
 
@@ -3162,6 +3555,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     }
     if (token !== templateState.loadToken) return;
     if (!raw) {
+      templateState.activeClockId = null;
+      refreshTemplateListUi();
       state.backgroundSourceLabel = "";
       refreshBackgroundSourceLabel();
       fontStore.log(t("log.templateConfigLoadFailed", { id }));
@@ -3208,6 +3603,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     fontStore.log(t("log.templateApplied", { id, resourceSummary: summaryParts.join(" ") }));
     refreshTemplateListUi();
     captureLanBaseline();
+    syncWorkspaceBaseline();
   }
 
   function refreshItemListUi() {
@@ -4212,21 +4608,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     ctx.fillText(`id=${meta.id} type=${meta.type} ${charset}`, 12, 110);
   }
 
-  async function loadSampleConfig() {
-    const paths = [
-      withBase("examples/sample_watchface.json"),
-      "../examples/sample_watchface.json",
-      "./examples/sample_watchface.json",
-      "../docs/EXAMPLE/api_responses/example/Device_GetLocalClockInfo_response.example.json"
-    ];
-    const json = await loadFirstJson(paths);
-    if (json) {
-      applyConfig(json, t("source.sampleConfig"));
-      return;
-    }
-    fontStore.log(t("log.sampleLoadFailed"));
-  }
-
   async function loadDefaultFontConfigs() {
     try {
       const cfgCandidates = [];
@@ -4304,21 +4685,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     }
   }
 
-  function exportCurrentConfig() {
-    syncItemIdList();
-    const out = {
-      ...state.config,
-      ItemList: state.config.ItemList.map((item) => {
-        const clone = { ...item };
-        return clone;
-      }),
-      ItemIdList: [...state.config.ItemIdList]
-    };
-    const name = `watchface_preview_${Date.now()}.json`;
-    downloadTextFile(name, JSON.stringify(out, null, 2), "application/json;charset=utf-8");
-    fontStore.log(t("log.configExported", { name }));
-  }
-
   function onAddItem() {
     const idx = state.config.ItemList.length;
     state.config.ItemList.push(createDefaultItem(idx));
@@ -4383,20 +4749,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function bindEvents() {
-    if (dom.btnApplyJson && dom.txtConfigJson) {
-      dom.btnApplyJson.addEventListener("click", () => {
-        try {
-          const raw = JSON.parse(dom.txtConfigJson.value);
-          applyConfig(raw, t("source.pastedJson"));
-        } catch (e) {
-          alert(t("alert.jsonParseFailed", { message: e.message }));
-        }
-      });
-    }
+    wireLocalWatchDialogs();
 
-    if (dom.btnClearJson && dom.txtConfigJson) {
-      dom.btnClearJson.addEventListener("click", () => {
-        dom.txtConfigJson.value = "";
+    if (dom.btnNewWatchface) {
+      dom.btnNewWatchface.addEventListener("click", () => {
+        void startNewBlankWatchface();
       });
     }
 
@@ -4413,20 +4770,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         await loadTemplateConfigIds();
       });
     }
-
-    dom.inputConfigFile.addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const raw = await readFileAsJson(file);
-        applyConfig(raw, file.name);
-        if (dom.txtConfigJson) {
-          dom.txtConfigJson.value = JSON.stringify(raw, null, 2);
-        }
-      } catch (err) {
-        alert(t("alert.readConfigFailed", { message: err.message }));
-      }
-    });
 
     dom.btnFitResolution.addEventListener("click", () => {
       const img = state.backgroundImage;
@@ -4474,8 +4817,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       renderWatchface();
       onLocalConfigEdited();
     });
-
-    dom.btnExportConfig.addEventListener("click", exportCurrentConfig);
 
     if (dom.inputFontFilter) {
       dom.inputFontFilter.addEventListener("input", refreshBuiltinFontList);
@@ -4530,7 +4871,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     }
   }
 
-  function init() {
+  async function init() {
     syncTemplateDomRefs();
     currentLanguageEnum = resolveInitialLanguageEnum();
     setLanguage(currentLanguageEnum, false);
@@ -4546,28 +4887,52 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     refreshTemplateListUi();
     fontStore.log(t("log.uiBuildVersion", { tag: APP_BUILD_TAG }));
     refreshBackgroundSourceLabel();
-    applyConfig({
-      ClockId: 0,
-      NameCn: t("ui.default.untitled"),
-      NameEn: "Untitled",
-      ItemList: [createDefaultItem(0)]
-    }, t("source.init"));
+
+    const lastId = getLastActiveId();
+    const rec = lastId ? getWatchface(lastId) : null;
+    if (rec) {
+      activeLocalWatchfaceId = lastId;
+      await restoreWorkspaceFromRecord(rec);
+      namingPromptDismissed = true;
+    } else {
+      activeLocalWatchfaceId = "";
+      applyConfig(
+        {
+          ClockId: 0,
+          NameCn: t("ui.default.untitled"),
+          NameEn: "Untitled",
+          ItemList: [createDefaultItem(0)]
+        },
+        t("source.init")
+      );
+      namingPromptDismissed = false;
+      syncWorkspaceBaseline();
+    }
+    refreshLocalWatchfaceListUi();
+
     if (state.tickHandle) clearInterval(state.tickHandle);
     state.tickHandle = setInterval(() => renderWatchface(), PREVIEW_TICK_MS);
-    window.addEventListener("beforeunload", () => {
-      clearAllLocalDispAssets();
-      clearBackgroundObjectUrl();
-    }, { once: true });
+    window.addEventListener("beforeunload", (e) => {
+      if (isWorkspaceDirtyUnsaved()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        clearAllLocalDispAssets();
+        clearBackgroundObjectUrl();
+      },
+      { once: true }
+    );
     loadDefaultFontConfigs();
     loadTemplateConfigIds();
-    loadSampleConfig();
     void warnIfFileProtocolBlocked();
   }
 
 function boot() {
-  try {
-    init();
-  } catch (err) {
+  void init().catch((err) => {
     console.error("[watchface-editor] init failed:", err);
     try {
       syncTemplateDomRefs();
@@ -4578,7 +4943,7 @@ function boot() {
     } catch (e) {
       /* ignore */
     }
-  }
+  });
 }
 
 if (document.readyState === "loading") {
