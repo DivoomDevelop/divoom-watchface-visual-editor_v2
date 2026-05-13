@@ -22,10 +22,17 @@
       <p id="app-subtitle">加载表盘 JSON，在 PC 上预览并编辑后再下发设备。</p>
     </div>
     <div class="top-actions">
+      <label class="lan-device-switch" for="select-lan-device">
+        <span id="lbl-lan-device">设备</span>
+        <select id="select-lan-device"></select>
+      </label>
+      <button id="btn-refresh-lan-devices" type="button" class="btn-ghost btn-lan-device-refresh"></button>
       <label class="lang-switch" for="select-lang">
         <span id="lbl-lang">语言</span>
         <select id="select-lang"></select>
       </label>
+      <button id="btn-lan-create" type="button" class="btn-lan" disabled></button>
+      <button id="btn-lan-apply" type="button" class="btn-lan" disabled></button>
       <button id="btn-export-config" type="button">导出当前配置</button>
     </div>
   </header>
@@ -46,10 +53,6 @@
           <label id="lbl-template-category" for="select-template-category">模板分类</label>
           <select id="select-template-category"></select>
         </div>
-        <div class="field-row">
-          <label id="lbl-template-filter" for="input-template-filter">过滤模板 ID</label>
-          <input id="input-template-filter" type="text" placeholder="输入模板 ID 关键字" />
-        </div>
         <div class="btn-row">
           <button id="btn-reload-templates" type="button">刷新模板列表</button>
         </div>
@@ -59,16 +62,6 @@
 
       <section class="card">
         <h2 id="sec-canvas-title">2) 画布</h2>
-        <div class="grid-2">
-          <div class="field-row">
-            <label id="lbl-input-width" for="input-width">宽度</label>
-            <input id="input-width" type="number" min="64" max="4000" step="1" value="800" />
-          </div>
-          <div class="field-row">
-            <label id="lbl-input-height" for="input-height">高度</label>
-            <input id="input-height" type="number" min="64" max="4000" step="1" value="1280" />
-          </div>
-        </div>
         <div class="field-row">
           <label id="lbl-input-zoom" for="input-zoom">缩放(%)</label>
           <input id="input-zoom" type="range" min="20" max="180" value="55" />
@@ -129,6 +122,20 @@
       </section>
     </aside>
   </main>
+
+  <dialog id="lan-create-dialog" class="lan-dialog">
+    <form id="lan-create-form">
+      <h3 id="lan-create-title" class="lan-dialog-title"></h3>
+      <label class="lan-dialog-field">
+        <span id="lan-create-label-text"></span>
+        <input id="lan-create-name" type="text" autocomplete="off" maxlength="64" />
+      </label>
+      <div class="lan-dialog-actions">
+        <button type="button" id="lan-create-cancel" class="btn-ghost"></button>
+        <button type="submit" id="lan-create-submit" class="btn-primary"></button>
+      </div>
+    </form>
+  </dialog>
 
   <template id="tpl-editor-field">
     <label class="editor-field">

@@ -96,6 +96,27 @@ body {
   padding: 6px 8px;
 }
 
+.lan-device-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lan-device-switch select {
+  width: auto;
+  min-width: 200px;
+  max-width: min(340px, 28vw);
+  padding: 6px 8px;
+}
+
+.btn-lan-device-refresh {
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 440px minmax(500px, 1fr) 420px;
@@ -641,4 +662,81 @@ button:disabled {
   .asset-info-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.top-actions .btn-lan:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.lan-dialog {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  color: var(--text);
+  max-width: min(420px, 92vw);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.lan-dialog::backdrop {
+  background: rgba(8, 10, 16, 0.62);
+}
+
+.lan-dialog form {
+  padding: 18px 20px;
+  margin: 0;
+}
+
+.lan-dialog-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.lan-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.lan-dialog-field input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.lan-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-ghost {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.btn-primary {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #4a7ad4;
+  background: #3555a4;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn-ghost:hover,
+.btn-primary:hover {
+  filter: brightness(1.08);
 }

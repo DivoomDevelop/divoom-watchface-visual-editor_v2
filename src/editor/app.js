@@ -14,6 +14,9 @@ const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
 
 const APP_BUILD_TAG = "2026-05-11 12:00";
 
+const LAN_DEVICE_HARDWARE_WHITELIST = new Set([500, 510, 511, 512]);
+const LAN_DEVICE_HTTP_PORT = 9000;
+
   const DISP_NAME_MAP = Object.freeze({
     1: "SECOND",
     2: "MIN",
@@ -1897,6 +1900,9 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     appTitle: byId("app-title"),
     appSubtitle: byId("app-subtitle"),
     lblLang: byId("lbl-lang"),
+    lblLanDevice: byId("lbl-lan-device"),
+    selectLanDevice: byId("select-lan-device"),
+    btnRefreshLanDevices: byId("btn-refresh-lan-devices"),
     secConfigTitle: byId("sec-config-title"),
     secTemplateTitle: byId("sec-template-title"),
     secCanvasTitle: byId("sec-canvas-title"),
@@ -1906,9 +1912,6 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     lblInputConfigFile: byId("lbl-input-config-file"),
     lblTxtConfigJson: byId("lbl-txt-config-json"),
     lblTemplateCategory: byId("lbl-template-category"),
-    lblTemplateFilter: byId("lbl-template-filter"),
-    lblInputWidth: byId("lbl-input-width"),
-    lblInputHeight: byId("lbl-input-height"),
     lblInputZoom: byId("lbl-input-zoom"),
     lblInputBgFile: byId("lbl-input-bg-file"),
     lblBgSourcePath: byId("lbl-bg-source-path"),
@@ -1923,12 +1926,9 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     btnApplyJson: byId("btn-apply-json"),
     btnClearJson: byId("btn-clear-json"),
     selectTemplateCategory: byId("select-template-category"),
-    inputTemplateFilter: byId("input-template-filter"),
     btnReloadTemplates: byId("btn-reload-templates"),
     templateHint: byId("template-hint"),
     templateList: byId("template-list"),
-    inputWidth: byId("input-width"),
-    inputHeight: byId("input-height"),
     inputZoom: byId("input-zoom"),
     txtZoom: byId("txt-zoom"),
     inputBgFile: byId("input-bg-file"),
@@ -1936,6 +1936,15 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     btnClearBg: byId("btn-clear-bg"),
     btnFitResolution: byId("btn-fit-resolution"),
     btnExportConfig: byId("btn-export-config"),
+    btnLanCreate: byId("btn-lan-create"),
+    btnLanApply: byId("btn-lan-apply"),
+    lanCreateDialog: byId("lan-create-dialog"),
+    lanCreateForm: byId("lan-create-form"),
+    lanCreateName: byId("lan-create-name"),
+    lanCreateCancel: byId("lan-create-cancel"),
+    lanCreateSubmit: byId("lan-create-submit"),
+    lanCreateTitle: byId("lan-create-title"),
+    lanCreateLabelText: byId("lan-create-label-text"),
     // Left font resource panel is removed, keep these optional for compatibility.
     inputFontFilter: byId("input-font-filter"),
     builtinFontList: byId("builtin-font-list"),
@@ -1998,6 +2007,8 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     backgroundSourceLabel: "",
     tickHandle: null
   };
+
+  let lanBaselineSignature = "";
 
   const templateState = {
     ids: [],
@@ -2232,6 +2243,11 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.appTitle, t("ui.appTitle"));
     setNodeText(dom.appSubtitle, t("ui.appSubtitle"));
     setNodeText(dom.lblLang, t("ui.language"));
+    if (dom.lblLanDevice) setNodeText(dom.lblLanDevice, t("ui.label.lanDevice"));
+    if (dom.btnRefreshLanDevices) setNodeText(dom.btnRefreshLanDevices, t("ui.btn.refreshLanDevices"));
+    if (dom.selectLanDevice?.options?.length && dom.selectLanDevice.options[0].value === "") {
+      dom.selectLanDevice.options[0].textContent = t("lan.device.placeholder");
+    }
 
     setNodeText(dom.secConfigTitle, t("ui.sec.config"));
     setNodeText(dom.secTemplateTitle, t("ui.sec.template"));
@@ -2243,14 +2259,10 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.lblInputConfigFile, t("ui.label.loadConfig"));
     setNodeText(dom.lblTxtConfigJson, t("ui.label.pasteJson"));
     setNodeText(dom.lblTemplateCategory, getTemplateCategoryLabelText());
-    setNodeText(dom.lblTemplateFilter, t("ui.label.templateFilter"));
-    setNodeText(dom.lblInputWidth, t("ui.label.width"));
-    setNodeText(dom.lblInputHeight, t("ui.label.height"));
     setNodeText(dom.lblInputZoom, t("ui.label.zoom"));
     setNodeText(dom.lblInputBgFile, t("ui.label.bgFile"));
     if (dom.lblBgSourcePath) setNodeText(dom.lblBgSourcePath, t("ui.label.bgSourcePath"));
     if (dom.txtConfigJson) dom.txtConfigJson.placeholder = t("ui.placeholder.configJson");
-    if (dom.inputTemplateFilter) dom.inputTemplateFilter.placeholder = t("ui.placeholder.templateFilter");
 
     setNodeText(dom.btnApplyJson, t("ui.btn.applyJson"));
     setNodeText(dom.btnClearJson, t("ui.btn.clearJson"));
@@ -2258,6 +2270,12 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     setNodeText(dom.btnClearBg, t("ui.btn.clearBg"));
     setNodeText(dom.btnFitResolution, t("ui.btn.applyResolution"));
     setNodeText(dom.btnExportConfig, t("ui.btn.export"));
+    setNodeText(dom.btnLanCreate, t("ui.btn.lanCreate"));
+    setNodeText(dom.btnLanApply, t("ui.btn.lanApply"));
+    if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.title"));
+    if (dom.lanCreateLabelText) setNodeText(dom.lanCreateLabelText, t("lan.dialog.nameLabel"));
+    if (dom.lanCreateCancel) setNodeText(dom.lanCreateCancel, t("lan.dialog.cancel"));
+    if (dom.lanCreateSubmit) setNodeText(dom.lanCreateSubmit, t("lan.dialog.submit"));
 
     setNodeText(dom.btnAddItem, t("ui.btn.add"));
     setNodeText(dom.btnDupItem, t("ui.btn.dup"));
@@ -2306,6 +2324,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     rebuildItemEditor();
     renderWatchface();
     renderFontPreview();
+    refreshLanActionButtons();
   }
 
   function createDefaultItem(index) {
@@ -2530,6 +2549,381 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     return map;
   }
 
+  function getLanDirtySnapshot() {
+    try {
+      syncItemIdList();
+      const previewOverrides = Object.fromEntries(
+        [...state.previewTextOverrides.entries()].sort((a, b) => a[0] - b[0])
+      );
+      const cfg = {
+        ...state.config,
+        ItemList: state.config.ItemList.map((item) => ({ ...item })),
+        ItemIdList: [...state.config.ItemIdList]
+      };
+      return JSON.stringify({
+        cfg,
+        previewW: state.width,
+        previewH: state.height,
+        bgKey: state.backgroundName || "",
+        previewOverrides
+      });
+    } catch {
+      return "";
+    }
+  }
+
+  function captureLanBaseline() {
+    lanBaselineSignature = getLanDirtySnapshot();
+    refreshLanActionButtons();
+  }
+
+  function refreshLanActionButtons() {
+    const btnC = dom.btnLanCreate;
+    const btnA = dom.btnLanApply;
+    if (!btnC || !btnA) return;
+    const dirty = getLanDirtySnapshot() !== lanBaselineSignature;
+    btnC.disabled = !dirty;
+    btnA.disabled = !dirty;
+  }
+
+  function onLocalConfigEdited() {
+    refreshLanActionButtons();
+  }
+
+  let lanDeviceRowsById = new Map();
+
+  function getLanTargetBase() {
+    try {
+      const deviceBase = localStorage.getItem("divoom_lan_device_base")?.trim();
+      if (deviceBase) return deviceBase;
+      return localStorage.getItem("divoom_lan_direct_base")?.trim() || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function resolveSameLanDeviceListUrl() {
+    if (import.meta.env.DEV) {
+      return `${location.origin}/divoom-cloud-proxy/Device/ReturnSameLANDevice`;
+    }
+    if (location.protocol === "file:") {
+      return "https://app.divoom-gz.com/Device/ReturnSameLANDevice";
+    }
+    const host = location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return `${location.origin}/divoom-cloud-proxy/Device/ReturnSameLANDevice`;
+    }
+    return "https://app.divoom-gz.com/Device/ReturnSameLANDevice";
+  }
+
+  function shouldUseLanProxyTunnel() {
+    if (import.meta.env.DEV) return true;
+    const host = location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    return location.port === "4173";
+  }
+
+  function buildLanFetchOptions(init = {}) {
+    const headers = new Headers(init.headers || {});
+    const base = getLanTargetBase();
+    if (shouldUseLanProxyTunnel() && base) {
+      headers.set("X-Divoom-Lan-Target", base.replace(/\/$/, ""));
+    }
+    return { ...init, headers };
+  }
+
+  function resolveDivoomUrl(apiPath) {
+    const p = apiPath.startsWith("/") ? apiPath : `/${apiPath}`;
+    const base = getLanTargetBase();
+    if (shouldUseLanProxyTunnel() && base) {
+      return `/divoom-proxy${p}`;
+    }
+    if (base && import.meta.env.PROD) {
+      return `${base.replace(/\/$/, "")}${p}`;
+    }
+    return `/divoom-proxy${p}`;
+  }
+
+  async function divoomJson(command, payload = {}) {
+    const url = resolveDivoomUrl("/divoom_api");
+    const body = JSON.stringify({ Command: command, ReturnCode: 0, ...payload });
+    let res;
+    try {
+      res = await fetch(url, buildLanFetchOptions({
+        method: "POST",
+        headers: { "Content-Type": "application/json;charset=UTF-8" },
+        body
+      }));
+    } catch (e) {
+      throw new Error(t("lan.err.network", { message: errorToText(e) }));
+    }
+    const text = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      /* ignore */
+    }
+    if (!res.ok) {
+      throw new Error(t("lan.err.http", { status: res.status, text: text.slice(0, 240) }));
+    }
+    if (data && data.ReturnCode !== undefined && Number(data.ReturnCode) !== 0) {
+      throw new Error(String(data.ReturnMessage || t("lan.err.returnCode", { code: data.ReturnCode })));
+    }
+    return data;
+  }
+
+  function buildPatchPayload() {
+    syncItemIdList();
+    const clockId = toNum(state.config.ClockId, 0);
+    const payload = {
+      ItemList: state.config.ItemList.map((item) => ({ ...item })),
+      ItemIdList: [...state.config.ItemIdList]
+    };
+    if (clockId > 0) payload.ClockId = clockId;
+    else payload.UseCurrentDisplayClock = true;
+    return payload;
+  }
+
+  function buildCreateClockMetadata(clockName) {
+    syncItemIdList();
+    const raw = JSON.parse(JSON.stringify(state.config));
+    raw.ClockName = clockName;
+    raw.NameCn = clockName;
+    raw.NameEn = clockName;
+    raw.ClockId = 0;
+    return raw;
+  }
+
+  function renderDialBackgroundJpegBlob() {
+    const w = 800;
+    const h = 1280;
+    return new Promise((resolve, reject) => {
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext("2d");
+      const img = state.backgroundImage;
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(img, 0, 0, w, h);
+      } else {
+        ctx.fillStyle = "#141c2b";
+        ctx.fillRect(0, 0, w, h);
+      }
+      c.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error("JPEG blob failed"));
+      }, "image/jpeg", 0.88);
+    });
+  }
+
+  async function divoomCreateMultipart(metadata, imageBlob) {
+    const fd = new FormData();
+    fd.append("json", new Blob([JSON.stringify(metadata)], { type: "application/json" }), "clock.json");
+    fd.append(String(Date.now()), imageBlob, "dial.jpg");
+    const url = resolveDivoomUrl("/create_local_clock");
+    let res;
+    try {
+      res = await fetch(url, buildLanFetchOptions({ method: "POST", body: fd }));
+    } catch (e) {
+      throw new Error(t("lan.err.network", { message: errorToText(e) }));
+    }
+    const text = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      /* ignore */
+    }
+    if (!res.ok) {
+      throw new Error(t("lan.err.http", { status: res.status, text: text.slice(0, 240) }));
+    }
+    if (data && data.ReturnCode !== undefined && Number(data.ReturnCode) !== 0) {
+      throw new Error(String(data.ReturnMessage || t("lan.err.returnCode", { code: data.ReturnCode })));
+    }
+    return data;
+  }
+
+  async function onLanApplyClick() {
+    if (!state.config.ItemList.length) {
+      alert(t("lan.err.emptyItemList"));
+      return;
+    }
+    const btn = dom.btnLanApply;
+    if (btn) btn.disabled = true;
+    try {
+      fontStore.log(t("lan.busy"));
+      await divoomJson("Device/PatchLocalClockInfo", buildPatchPayload());
+      fontStore.log(t("lan.success.patch"));
+      alert(t("lan.success.patch"));
+      captureLanBaseline();
+    } catch (e) {
+      alert(errorToText(e));
+      refreshLanActionButtons();
+    }
+  }
+
+  async function runLanCreateWithName(name) {
+    if (!state.config.ItemList.length) {
+      alert(t("lan.err.emptyItemList"));
+      return;
+    }
+    const btn = dom.btnLanCreate;
+    if (btn) btn.disabled = true;
+    try {
+      fontStore.log(t("lan.busy"));
+      const meta = buildCreateClockMetadata(name);
+      const blob = await renderDialBackgroundJpegBlob();
+      await divoomCreateMultipart(meta, blob);
+      fontStore.log(t("lan.success.create"));
+      alert(t("lan.success.create"));
+      captureLanBaseline();
+    } catch (e) {
+      alert(errorToText(e));
+      refreshLanActionButtons();
+    }
+  }
+
+  function persistLanDeviceRow(row) {
+    const ip = String(row.DevicePrivateIP || "").trim();
+    if (!ip) return;
+    const base = `http://${ip}:${LAN_DEVICE_HTTP_PORT}`;
+    try {
+      localStorage.setItem("divoom_lan_device_base", base);
+      localStorage.setItem("divoom_lan_selected_device_id", String(row.DeviceId));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function clearPersistedLanDeviceSelection() {
+    try {
+      localStorage.removeItem("divoom_lan_device_base");
+      localStorage.removeItem("divoom_lan_selected_device_id");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function refreshLanDeviceListUi(opts = {}) {
+    const silent = Boolean(opts.silent);
+    const sel = dom.selectLanDevice;
+    const btn = dom.btnRefreshLanDevices;
+    if (!sel) return;
+    if (btn) btn.disabled = true;
+    try {
+      const url = resolveSameLanDeviceListUrl();
+      const res = await fetch(url, { method: "GET", credentials: "omit", cache: "no-store" });
+      const text = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        /* ignore */
+      }
+      if (!res.ok) {
+        throw new Error(text.slice(0, 240) || String(res.status));
+      }
+      if (data && data.ReturnCode !== undefined && Number(data.ReturnCode) !== 0) {
+        throw new Error(String(data.ReturnMessage || `ReturnCode ${data.ReturnCode}`));
+      }
+      const list = Array.isArray(data?.DeviceList) ? data.DeviceList : [];
+      const filtered = list.filter((d) => LAN_DEVICE_HARDWARE_WHITELIST.has(Number(d.Hardware)));
+      lanDeviceRowsById = new Map(filtered.map((d) => [String(d.DeviceId), d]));
+      let savedId = "";
+      try {
+        savedId = localStorage.getItem("divoom_lan_selected_device_id") || "";
+      } catch {
+        savedId = "";
+      }
+      sel.innerHTML = "";
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = t("lan.device.placeholder");
+      sel.appendChild(ph);
+      for (const d of filtered) {
+        const id = String(d.DeviceId);
+        const opt = document.createElement("option");
+        opt.value = id;
+        const name = String(d.DeviceName || id).trim() || id;
+        opt.textContent = `${name} (${d.DevicePrivateIP})`;
+        sel.appendChild(opt);
+      }
+      if (savedId && lanDeviceRowsById.has(savedId)) {
+        sel.value = savedId;
+        persistLanDeviceRow(lanDeviceRowsById.get(savedId));
+      } else {
+        sel.value = "";
+        clearPersistedLanDeviceSelection();
+      }
+      if (!filtered.length && !silent) {
+        fontStore.log(t("lan.device.noneInList"));
+      }
+    } catch (e) {
+      const msg = errorToText(e);
+      if (!silent) alert(t("lan.device.listFailed", { message: msg }));
+      if (!silent) fontStore.log(t("lan.device.listFailed", { message: msg }));
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function wireLanDeviceUi() {
+    if (dom.btnRefreshLanDevices) {
+      dom.btnRefreshLanDevices.addEventListener("click", () => {
+        void refreshLanDeviceListUi({ silent: false });
+      });
+    }
+    if (dom.selectLanDevice) {
+      dom.selectLanDevice.addEventListener("change", () => {
+        const id = dom.selectLanDevice.value;
+        if (!id) {
+          clearPersistedLanDeviceSelection();
+          return;
+        }
+        const row = lanDeviceRowsById.get(id);
+        if (row) persistLanDeviceRow(row);
+      });
+    }
+  }
+
+  function wireLanUi() {
+    if (dom.btnLanCreate) {
+      dom.btnLanCreate.addEventListener("click", () => {
+        if (dom.btnLanCreate.disabled) return;
+        if (dom.lanCreateDialog?.showModal) {
+          if (dom.lanCreateName) {
+            dom.lanCreateName.value = getClockDisplayName(state.config) || "";
+            dom.lanCreateName.focus();
+            dom.lanCreateName.select();
+          }
+          dom.lanCreateDialog.showModal();
+        }
+      });
+    }
+    if (dom.lanCreateCancel && dom.lanCreateDialog) {
+      dom.lanCreateCancel.addEventListener("click", () => dom.lanCreateDialog.close());
+    }
+    if (dom.lanCreateForm) {
+      dom.lanCreateForm.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const name = String(dom.lanCreateName?.value || "").trim();
+        if (!name) {
+          alert(t("lan.err.emptyName"));
+          return;
+        }
+        dom.lanCreateDialog?.close();
+        void runLanCreateWithName(name);
+      });
+    }
+    if (dom.btnLanApply) {
+      dom.btnLanApply.addEventListener("click", () => {
+        if (dom.btnLanApply.disabled) return;
+        void onLanApplyClick();
+      });
+    }
+  }
+
   function applyConfig(raw, sourceLabel) {
     clearAllLocalDispAssets();
     state.config = normalizeConfig(raw);
@@ -2542,6 +2936,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     rebuildItemEditor();
     renderWatchface();
     fontStore.log(t("log.configApplied", { source: sourceLabel }));
+    captureLanBaseline();
   }
 
   function refreshTemplateListUi() {
@@ -2549,10 +2944,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     if (!dom.templateList || !dom.templateHint) return;
     const selectedClassify = getSelectedTemplateClassifyRow();
     const categoryTemplateIds = selectedClassify ? selectedClassify.availableIds : [];
-    const keyword = String(dom.inputTemplateFilter?.value || "").trim();
-    const filtered = keyword
-      ? categoryTemplateIds.filter((id) => String(id).includes(keyword))
-      : [...categoryTemplateIds];
+    const filtered = [...categoryTemplateIds];
 
     dom.templateList.innerHTML = "";
     if (!filtered.length) {
@@ -2815,6 +3207,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     renderWatchface();
     fontStore.log(t("log.templateApplied", { id, resourceSummary: summaryParts.join(" ") }));
     refreshTemplateListUi();
+    captureLanBaseline();
   }
 
   function refreshItemListUi() {
@@ -3109,6 +3502,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
         item.image_addr = file.name || "";
         refreshItemListUi();
         renderWatchface();
+        onLocalConfigEdited();
       } catch (err) {
         alert(t("alert.localAssetLoadFailed", { message: errorToText(err) }));
       } finally {
@@ -3123,6 +3517,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       refreshItemListUi();
       renderWatchface();
       refresh();
+      onLocalConfigEdited();
     });
 
     refresh();
@@ -3217,6 +3612,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
         syncItemIdList();
         refreshItemListUi();
         renderWatchface();
+        onLocalConfigEdited();
         // 连续输入时不要重建表单，否则会丢焦点导致“只能输入一次”。
         // 仅在切换需要重排编辑项的字段后重建。
         if (field.key === "disp" || field.key === "font") {
@@ -3931,6 +4327,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     refreshItemListUi();
     rebuildItemEditor();
     renderWatchface();
+    onLocalConfigEdited();
   }
 
   function onDupItem() {
@@ -3946,6 +4343,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     refreshItemListUi();
     rebuildItemEditor();
     renderWatchface();
+    onLocalConfigEdited();
   }
 
   function onDeleteItem() {
@@ -3964,6 +4362,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     refreshItemListUi();
     rebuildItemEditor();
     renderWatchface();
+    onLocalConfigEdited();
   }
 
   function moveItem(step) {
@@ -3980,6 +4379,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     refreshItemListUi();
     rebuildItemEditor();
     renderWatchface();
+    onLocalConfigEdited();
   }
 
   function bindEvents() {
@@ -4008,9 +4408,6 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       });
     }
 
-    if (dom.inputTemplateFilter) {
-      dom.inputTemplateFilter.addEventListener("input", refreshTemplateListUi);
-    }
     if (dom.btnReloadTemplates) {
       dom.btnReloadTemplates.addEventListener("click", async () => {
         await loadTemplateConfigIds();
@@ -4032,9 +4429,12 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     });
 
     dom.btnFitResolution.addEventListener("click", () => {
-      state.width = clamp(toNum(dom.inputWidth.value, 800), 64, 4000);
-      state.height = clamp(toNum(dom.inputHeight.value, 1280), 64, 4000);
+      const img = state.backgroundImage;
+      if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+      state.width = clamp(img.naturalWidth, 64, 4000);
+      state.height = clamp(img.naturalHeight, 64, 4000);
       renderWatchface();
+      onLocalConfigEdited();
     });
 
     dom.inputZoom.addEventListener("input", () => {
@@ -4056,6 +4456,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
           refreshBackgroundSourceLabel();
           renderWatchface();
           fontStore.log(t("log.backgroundLoaded", { name: file.name }));
+          onLocalConfigEdited();
         };
         img.onerror = () => alert(t("alert.backgroundLoadFailed"));
         img.src = String(reader.result);
@@ -4071,6 +4472,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
       if (dom.inputBgFile) dom.inputBgFile.value = "";
       refreshBackgroundSourceLabel();
       renderWatchface();
+      onLocalConfigEdited();
     });
 
     dom.btnExportConfig.addEventListener("click", exportCurrentConfig);
@@ -4105,6 +4507,9 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
         dom.fileProtocolBanner.hidden = true;
       });
     }
+
+    wireLanDeviceUi();
+    wireLanUi();
   }
 
   async function warnIfFileProtocolBlocked() {
@@ -4135,6 +4540,7 @@ const APP_BUILD_TAG = "2026-05-11 12:00";
     rebuildTemplateClassifyRows();
 
     bindEvents();
+    void refreshLanDeviceListUi({ silent: true });
     applyCanvasZoom();
     refreshFontPreviewSelect();
     refreshTemplateListUi();
