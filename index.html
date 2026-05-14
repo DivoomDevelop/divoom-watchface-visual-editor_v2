@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Divoom 表盘 PC 预览与编辑器</title>
 </head>
-<body>
+<body class="page-root">
   <div id="file-protocol-banner" class="file-protocol-banner" hidden>
     <div class="file-protocol-banner__inner">
       <strong id="file-banner-title"></strong>
@@ -16,85 +16,42 @@
       <button id="btn-dismiss-file-banner" type="button"></button>
     </div>
   </div>
+
   <header class="topbar">
     <div class="title-wrap">
       <h1 id="app-title">Divoom 表盘 PC 预览与编辑器</h1>
       <p id="app-subtitle">加载表盘 JSON，在 PC 上预览并编辑后再下发设备。</p>
     </div>
+    <div id="app-mode-strip" class="app-mode-strip" role="tablist" aria-label="Page mode">
+      <button id="app-mode-local" type="button" class="app-mode-strip__btn app-mode-strip__btn-active" role="tab" aria-selected="true" aria-controls="main-layout"></button>
+      <button id="app-mode-template" type="button" class="app-mode-strip__btn" role="tab" aria-selected="false" aria-controls="main-layout"></button>
+    </div>
     <div class="top-actions">
-      <label class="lan-device-switch" for="select-lan-device">
-        <span id="lbl-lan-device">设备</span>
-        <select id="select-lan-device"></select>
-      </label>
-      <button id="btn-refresh-lan-devices" type="button" class="btn-ghost btn-lan-device-refresh"></button>
+      <div id="topbar-shell-local-only" class="topbar-local-cluster">
+        <label class="lan-device-switch" for="select-lan-device">
+          <span id="lbl-lan-device">设备</span>
+          <select id="select-lan-device"></select>
+        </label>
+        <button id="btn-refresh-lan-devices" type="button" class="btn-ghost btn-lan-device-refresh"></button>
+        <button id="btn-lan-apply-config" type="button" class="btn-lan" disabled></button>
+      </div>
       <label class="lang-switch" for="select-lang">
         <span id="lbl-lang">语言</span>
         <select id="select-lang"></select>
       </label>
-      <button id="btn-lan-create" type="button" class="btn-lan" disabled></button>
-      <button id="btn-lan-apply" type="button" class="btn-lan" disabled></button>
     </div>
   </header>
 
-  <main class="layout" id="main-layout">
-    <aside class="panel left-panel">
-      <section class="card sidebar-watch-scope">
-        <div class="sidebar-watch-tablist" role="tablist" aria-label="Watchface lists">
-          <button id="sidebar-tab-local" type="button" class="sidebar-watch-tab" role="tab" aria-selected="true" aria-controls="sidebar-panel-local"></button>
-          <button id="sidebar-tab-template" type="button" class="sidebar-watch-tab" role="tab" aria-selected="false" aria-controls="sidebar-panel-template"></button>
-        </div>
-
-        <div id="sidebar-panel-local" class="sidebar-watch-panel" role="tabpanel">
-          <div class="btn-row">
-            <button id="btn-new-watchface" type="button"></button>
-          </div>
-          <div id="local-watch-hint" class="hint"></div>
-          <ul id="local-watchface-list" class="template-list local-watchface-list"></ul>
-        </div>
-
-        <div id="sidebar-panel-template" class="sidebar-watch-panel" role="tabpanel" hidden>
-          <div class="field-row">
-            <label id="lbl-template-category" for="select-template-category">模板分类</label>
-            <select id="select-template-category"></select>
-          </div>
-          <div class="btn-row sidebar-template-actions">
-            <button id="btn-reload-templates" type="button">刷新模板列表</button>
-            <button id="btn-apply-template" type="button" class="btn-primary"></button>
-          </div>
-          <div id="template-hint" class="hint"></div>
-          <ul id="template-list" class="template-list template-list-with-thumb"></ul>
-        </div>
-      </section>
-
+  <main class="layout layout-mode-local" id="main-layout">
+    <aside class="panel left-panel" id="panel-local-shell">
       <section class="card">
-        <h2 id="sec-canvas-title">2) 画布</h2>
-        <div class="field-row">
-          <label id="lbl-input-zoom" for="input-zoom">缩放(%)</label>
-          <input id="input-zoom" type="range" min="20" max="180" value="55" />
-          <span id="txt-zoom">55%</span>
+        <div class="btn-row">
+          <button id="btn-new-watchface" type="button"></button>
         </div>
+        <div id="local-watch-hint" class="hint"></div>
+        <ul id="local-watchface-list" class="template-list local-watchface-list"></ul>
       </section>
 
-    </aside>
-
-    <section class="panel center-panel">
-      <div class="canvas-toolbar">
-        <div><span id="lbl-current-clock">当前表盘：</span><span id="txt-clock-title">未加载</span></div>
-        <div><span id="lbl-clock-id">ClockId:</span> <span id="txt-clock-id">-</span></div>
-        <div><span id="lbl-item-count">元素数:</span> <span id="txt-item-count">0</span></div>
-        <div id="browse-template-toolbar-hint" class="browse-template-toolbar-hint" hidden></div>
-      </div>
-      <div id="preview-stage" class="preview-stage">
-        <canvas id="watchface-canvas" width="800" height="1280"></canvas>
-      </div>
-      <div class="legend">
-        <span id="legend-image" class="legend-chip image">图片/网络元素占位</span>
-        <span id="legend-text" class="legend-chip text">文本元素</span>
-        <span id="legend-pointer" class="legend-chip pointer">指针元素</span>
-      </div>
-    </section>
-
-    <aside class="panel right-panel" id="right-editor-panel">
       <section class="card">
         <h2 id="sec-background-title">表盘底图</h2>
         <div class="field-row">
@@ -107,10 +64,56 @@
         </div>
         <div class="btn-row">
           <button id="btn-clear-bg" type="button">清除底图</button>
-          <button id="btn-fit-resolution" type="button">应用分辨率</button>
         </div>
       </section>
 
+      <section class="card">
+        <h2 id="sec-canvas-title">2) 画布</h2>
+        <div class="field-row">
+          <label id="lbl-input-zoom" for="input-zoom">缩放(%)</label>
+          <input id="input-zoom" type="range" min="20" max="180" value="55" />
+          <span id="txt-zoom">55%</span>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="panel left-panel panel-template-shell" id="panel-template-shell" hidden>
+      <section class="template-browse-card">
+        <div class="template-browse-head">
+          <div>
+            <h2 id="lbl-template-category">模板分类</h2>
+            <div id="template-hint" class="template-browse-hint"></div>
+          </div>
+          <div class="btn-row sidebar-template-actions">
+            <button id="btn-apply-template" type="button" class="btn-primary"></button>
+          </div>
+        </div>
+        <select id="select-template-category" hidden></select>
+        <div id="template-category-rail" class="template-category-rail" role="tablist" aria-label="模板分类"></div>
+        <ul id="template-list" class="template-list template-list-with-thumb template-list-fill"></ul>
+      </section>
+    </aside>
+
+    <section class="panel center-panel">
+      <div class="canvas-toolbar">
+        <div class="toolbar-clock-meta-shell">
+          <div><span id="lbl-current-clock">当前表盘：</span><span id="txt-clock-title">未加载</span></div>
+          <div><span id="lbl-clock-id">ClockId:</span> <span id="txt-clock-id">-</span></div>
+          <div><span id="lbl-item-count">元素数:</span> <span id="txt-item-count">0</span></div>
+        </div>
+        <div id="browse-template-toolbar-hint" class="browse-template-toolbar-hint" hidden></div>
+      </div>
+      <div id="preview-stage" class="preview-stage">
+        <canvas id="watchface-canvas" width="800" height="1280"></canvas>
+      </div>
+      <div class="legend shell-local-only">
+        <span id="legend-image" class="legend-chip image">图片/网络元素占位</span>
+        <span id="legend-text" class="legend-chip text">文本元素</span>
+        <span id="legend-pointer" class="legend-chip pointer">指针元素</span>
+      </div>
+    </section>
+
+    <aside class="panel right-panel" id="right-editor-panel">
       <section class="card">
         <h2 id="sec-itemlist-title">3) 显示元素(ItemList)</h2>
         <div class="btn-row">

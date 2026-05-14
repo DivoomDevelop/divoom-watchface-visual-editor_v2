@@ -3,7 +3,6 @@ import enUS from "./en-US.js";
 const jaJP = Object.freeze({
   ...enUS,
   "ui.appTitle": "Divoom ウォッチフェイス PC プレビューエディター",
-  "ui.appSubtitle": "ウォッチフェイス JSON を読み込み、PC でプレビュー・編集してからデバイスへ送信します。",
   "ui.language": "言語",
   "ui.sec.config": "1) ウォッチフェイス設定",
   "ui.sec.canvas": "2) キャンバス",
@@ -50,7 +49,33 @@ const jaJP = Object.freeze({
   "disp.cat.pointerComponent": "ポインター / サブダイヤル部品",
   "disp.cat.text": "テキストとメッセージ",
   "disp.cat.other": "その他",
-  "disp.cat.currentValue": "現在値"
+  "disp.cat.currentValue": "現在値",
+
+  "ui.sec.localWatch": "マイデザイン",
+  "ui.sec.template": "テンプレート一覧",
+  "ui.sec.templateCategory": "テンプレートカテゴリ",
+  "ui.tab.localWatchfaces": "マイデザイン",
+  "ui.tab.templateWatchfaces": "テンプレート",
+  "ui.label.lanDevice": "LAN デバイス",
+  "ui.btn.refreshLanDevices": "デバイス一覧を更新",
+  "ui.btn.lanApplyWatchfaceConfig": "ウォッチフェイス設定を適用",
+  "ui.btn.applyTemplate": "テンプレートを適用",
+  "ui.btn.newWatchface": "新規デザイン",
+  "ui.appSubtitle": "テンプレートまたはマイデザイン由来のウォッチフェイスを編集します。変更はブラウザに自動保存されます。",
+  "browseTemplate.toolbarHint": "テンプレート閲覧は読み取り専用です。リストをクリックでプレビュー（サムネイルは template/33 を使用）。ダブルクリックまたは「テンプレートを適用」でマイデザインへコピーし、編集できます。",
+  "template.hint.loading": "template/config をスキャン中です（初回は時間がかかることがあります）…",
+  "template.hint.empty": "テンプレート設定が見つかりません。",
+  "template.hint.browse": "このカテゴリに表示中のテンプレートは {count} 件です。シングルクリックでプレビュー（一覧サムネイルは template/33、(ClockId+1).png、パッケージ済み資産と同じ +1 規則）。ダブルクリックまたは「適用」でマイデザインへ追加されます。",
+  "template.hint.error": "テンプレート一覧の読み込みに失敗しました: {message}",
+  "ui.toolbar.clockId": "ClockId:",
+  "ui.toolbar.clockIdNotUploaded": "このデザインはまだアップロードされていません",
+  "ui.label.bgSourcePath": "背景画像のパスURL",
+  "ui.bg.localFileHint": "ローカルファイル ({name})",
+  "localWatch.listEmpty": "保存されたデザインはまだありません。名前を付けて保存するとここに表示されます。",
+  "localWatch.listHint": "クリックで開く；× で削除。名前付きのデザインは編集中に自動保存されます。",
+  "template.err.noneSelected": "先にテンプレート一覧でプレビューする項目を選んでください。",
+  "ui.aria.appModeTabs": "編集モード",
+  "ui.aria.templateCategoryRail": "テンプレートカテゴリ"
 });
 
 export default jaJP;

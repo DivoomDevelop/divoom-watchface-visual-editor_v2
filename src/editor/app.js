@@ -207,6 +207,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     246: "APP_ITEM_DATA13",
     247: "APP_ITEM_DATA14",
     248: "APP_ITEM_DATA15",
+    254: "TEMP_DIGIT2",
+    339: "TEMP_DIGIT3",
+    342: "HUMI_ONLY_NUM",
     348: "ROT_IMG_EFFECT_1",
     349: "ROT_IMG_EFFECT_2",
     350: "ROT_IMG_EFFECT_3",
@@ -395,6 +398,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     246: "app单元项数据13",
     247: "app单元项数据14",
     248: "app单元项数据15",
+    254: "温度数字显示(只带°)",
+    339: "温度数字显示(带℃/℉)",
+    342: "湿度纯数字显示（%在底图）",
     348: "图像旋转效果1（单图 ROT_IMG / mul_flag=0）",
     349: "图像旋转效果2（单图 ROT_IMG / mul_flag=0）",
     350: "图像旋转效果3（单图 ROT_IMG / mul_flag=0）",
@@ -409,13 +415,42 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     81, 85, 89, 93, 98, 105, 107, 108, 110, 111, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137,
     138, 139, 140, 141, 142, 143, 144, 145, 146, 150, 151, 152, 171, 172, 173, 174, 175, 182, 183, 184, 185, 186, 187,
     188, 189, 190, 206, 207, 208, 209, 210, 211, 212, 217, 218, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
-    232, 233, 234, 240, 245, 260, 348, 349, 350, 352
+    232, 233, 234, 240, 245, 260, 348, 349, 350, 352,
+    394, 395, 396, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 446, 447, 465
   ]);
 
   /** DIVOOM_CLOCK_DISP_SUPPORT_ROTAETE_IMAGE1..4 —— divoom_disp_clock.c / dial_menu ROTATE_IMAGE（mul_flag=0） */
   const ROTATE_SINGLE_IMAGE_DISP_IDS = new Set([348, 349, 350, 352]);
 
   const POINTER_DISP_IDS = new Set([131, 132, 233]);
+  /** Editor preview: DIVOOM_CLOCK_DISP_SUPPORT_PHOTO_ALBUM*, PHOTO_ALBUMID*, CUSTOM_CLOUD_PHOTO — demo strip from public/pic */
+  const PHOTO_ALBUM_PREVIEW_DISP_IDS = new Set([
+    234,
+    394,
+    395,
+    396,
+    429,
+    430,
+    431,
+    432,
+    433,
+    434,
+    435,
+    436,
+    437,
+    438,
+    439,
+    440,
+    441,
+    442,
+    443,
+    444,
+    446,
+    447,
+    465
+  ]);
+  const PHOTO_ALBUM_PREVIEW_ROTATE_MS = 3000;
+
   const NETWORK_TEXT_DISP_IDS = new Set([118, 119, 120, 121, 122, 123, 154, 155]);
   const MULTI_LINE_DISP_IDS = new Set([56, 154, 155, 104, 220]);
   const APP_DATA_DISP_IDS = new Set([16, 38, 40, 41, 42, 99, 100, 112, 113, 114, 115, 116, 117, 246, 247, 248]);
@@ -669,6 +704,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     [131, { mode: "pointer", value: 1 }],
     [132, { mode: "pointer", value: 1 }],
     [233, { mode: "pointer", value: 1 }],
+    [172, { mode: "multiple", value: 2 }],
     [173, { mode: "any" }],
     [174, { mode: "any" }],
     [175, { mode: "any" }],
@@ -1181,6 +1217,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         return now.getHours() >= 6 && now.getHours() < 18 ? 0 : 1;
       case 182:
         return now.getSeconds() % 2;
+      case 172:
+        return now.getSeconds() % 2;
       case 207:
       case 209:
       case 210:
@@ -1559,6 +1597,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     if (disp >= 261 && disp <= 279) return "disp.cat.pointerComponent";
     if (POINTER_DISP_IDS.has(disp) || /POINT|DIAL|COMPONENT|CALENDAR_WATCH/.test(upper)) return "disp.cat.pointerComponent";
     if (/CHINA_|JIEQI|CONST|GOOD|BAD|LUNAR/.test(upper)) return "disp.cat.lunar";
+    // DIVOOM_CLOCK_DISP_SUPPORT_TEMP_PIC：摄氏/华氏双图资源，归为图像类而非天气文本
+    if (disp === 172) return "disp.cat.image";
     if (/WEATHER|TEMP|WIND|VISIBILITY|HUMI|DAY_NIGHT|SUNRISE|SUNSET|TIDAL|PHASE_MOON/.test(upper)) return "disp.cat.weather";
     if (/MUSIC|SPOTIFY|EQ|ALARM|NOISE/.test(upper)) return "disp.cat.audio";
     if (/APP_ITEM|APP_NET|APP_CON|APP_PIC|APP_TITLE|NET\d+_|NET_PIC|NET_TEXT|USER_TEXT|CALENDAR_EVENT|QR_CODE/.test(upper)) {
@@ -1931,10 +1971,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     btnRefreshLanDevices: byId("btn-refresh-lan-devices"),
     mainLayout: byId("main-layout"),
     rightEditorPanel: byId("right-editor-panel"),
-    sidebarTabLocal: byId("sidebar-tab-local"),
-    sidebarTabTemplate: byId("sidebar-tab-template"),
-    sidebarPanelLocal: byId("sidebar-panel-local"),
-    sidebarPanelTemplate: byId("sidebar-panel-template"),
+    appModeStrip: byId("app-mode-strip"),
+    appModeLocal: byId("app-mode-local"),
+    appModeTemplate: byId("app-mode-template"),
+    panelLocalShell: byId("panel-local-shell"),
+    panelTemplateShell: byId("panel-template-shell"),
+    topbarShellLocalOnly: byId("topbar-shell-local-only"),
     btnApplyTemplate: byId("btn-apply-template"),
     browseTemplateToolbarHint: byId("browse-template-toolbar-hint"),
     btnNewWatchface: byId("btn-new-watchface"),
@@ -1955,7 +1997,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     legendText: byId("legend-text"),
     legendPointer: byId("legend-pointer"),
     selectTemplateCategory: byId("select-template-category"),
-    btnReloadTemplates: byId("btn-reload-templates"),
+    templateCategoryRail: byId("template-category-rail"),
     templateHint: byId("template-hint"),
     templateList: byId("template-list"),
     inputZoom: byId("input-zoom"),
@@ -1963,9 +2005,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     inputBgFile: byId("input-bg-file"),
     txtBgSourcePath: byId("txt-bg-source-path"),
     btnClearBg: byId("btn-clear-bg"),
-    btnFitResolution: byId("btn-fit-resolution"),
-    btnLanCreate: byId("btn-lan-create"),
-    btnLanApply: byId("btn-lan-apply"),
+    btnLanApplyWatchfaceConfig: byId("btn-lan-apply-config"),
     lanCreateDialog: byId("lan-create-dialog"),
     lanCreateForm: byId("lan-create-form"),
     lanCreateName: byId("lan-create-name"),
@@ -2010,11 +2050,13 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   /** 模板列表依赖的节点：避免极少数环境下脚本早于节点插入导致 byId 为 null。 */
   function syncTemplateDomRefs() {
     const sel = byId("select-template-category");
+    const rail = byId("template-category-rail");
     const hint = byId("template-hint");
     const list = byId("template-list");
     const bgPath = byId("txt-bg-source-path");
     const lblBgPath = byId("lbl-bg-source-path");
     if (sel) dom.selectTemplateCategory = sel;
+    if (rail) dom.templateCategoryRail = rail;
     if (hint) dom.templateHint = hint;
     if (list) dom.templateList = list;
     if (bgPath) dom.txtBgSourcePath = bgPath;
@@ -2045,9 +2087,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     tickHandle: null
   };
 
+  let photoAlbumDemoImages = [];
+  const photoAlbumPreviewItemState = new WeakMap();
+
   let lanBaselineSignature = "";
 
-  /** 本地表盘当前条目 id（空 = 未绑定已命名本地保存） */
+  /** 「我的设计」当前条目 id（空 = 未绑定已命名保存） */
   let activeLocalWatchfaceId = "";
   /** 判断相对上次保存/加载是否有修改（含未命名草稿） */
   let workspaceBaselineSig = "";
@@ -2296,7 +2341,22 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   ]);
 
   function setNodeText(node, value) {
-    if (node) node.textContent = String(value ?? "");
+    if (!node) return;
+    node.textContent = String(value ?? "");
+  }
+
+  /** 「我的设计」且 ClockId=0 时不展示 “ClockId: 0”，改为未上传提示（模板浏览仍显示 ID）。 */
+  function refreshToolbarClockIdUi() {
+    if (!dom.txtClockId || !dom.lblClockId) return;
+    const cid = toNum(state.config?.ClockId, 0);
+    if (sidebarBrowseMode === "local" && cid === 0) {
+      dom.lblClockId.hidden = true;
+      dom.txtClockId.textContent = t("ui.toolbar.clockIdNotUploaded");
+    } else {
+      dom.lblClockId.hidden = false;
+      dom.lblClockId.textContent = t("ui.toolbar.clockId");
+      dom.txtClockId.textContent = String(cid);
+    }
   }
 
   function applyStaticI18n() {
@@ -2311,8 +2371,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       dom.selectLanDevice.options[0].textContent = t("lan.device.placeholder");
     }
 
-    setNodeText(dom.sidebarTabLocal, t("ui.tab.localWatchfaces"));
-    setNodeText(dom.sidebarTabTemplate, t("ui.tab.templateWatchfaces"));
+    if (dom.appModeLocal) setNodeText(dom.appModeLocal, t("ui.tab.localWatchfaces"));
+    if (dom.appModeTemplate) setNodeText(dom.appModeTemplate, t("ui.tab.templateWatchfaces"));
     if (dom.btnApplyTemplate) setNodeText(dom.btnApplyTemplate, t("ui.btn.applyTemplate"));
 
     setNodeText(dom.secCanvasTitle, t("ui.sec.canvas"));
@@ -2321,15 +2381,15 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     setNodeText(dom.secEditorTitle, t("ui.sec.editor"));
 
     if (dom.btnNewWatchface) setNodeText(dom.btnNewWatchface, t("ui.btn.newWatchface"));
-    setNodeText(dom.lblTemplateCategory, getTemplateCategoryLabelText());
+    setNodeText(dom.lblTemplateCategory, t("ui.sec.templateCategory"));
+    if (dom.appModeStrip) dom.appModeStrip.setAttribute("aria-label", t("ui.aria.appModeTabs"));
+    if (dom.templateCategoryRail) dom.templateCategoryRail.setAttribute("aria-label", t("ui.aria.templateCategoryRail"));
     setNodeText(dom.lblInputZoom, t("ui.label.zoom"));
     setNodeText(dom.lblInputBgFile, t("ui.label.bgFile"));
     if (dom.lblBgSourcePath) setNodeText(dom.lblBgSourcePath, t("ui.label.bgSourcePath"));
-    setNodeText(dom.btnReloadTemplates, t("ui.btn.reloadTemplates"));
     setNodeText(dom.btnClearBg, t("ui.btn.clearBg"));
-    setNodeText(dom.btnFitResolution, t("ui.btn.applyResolution"));
-    setNodeText(dom.btnLanCreate, t("ui.btn.lanCreate"));
-    setNodeText(dom.btnLanApply, t("ui.btn.lanApply"));
+    if (dom.btnLanApplyWatchfaceConfig)
+      setNodeText(dom.btnLanApplyWatchfaceConfig, t("ui.btn.lanApplyWatchfaceConfig"));
     if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.title"));
     if (dom.lanCreateLabelText) setNodeText(dom.lanCreateLabelText, t("lan.dialog.nameLabel"));
     if (dom.lanCreateCancel) setNodeText(dom.lanCreateCancel, t("lan.dialog.cancel"));
@@ -2342,7 +2402,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     setNodeText(dom.btnItemDown, t("ui.btn.down"));
 
     setNodeText(dom.lblCurrentClock, t("ui.toolbar.currentClock"));
-    setNodeText(dom.lblClockId, t("ui.toolbar.clockId"));
     setNodeText(dom.lblItemCount, t("ui.toolbar.itemCount"));
     setNodeText(dom.legendImage, t("ui.legend.image"));
     setNodeText(dom.legendText, t("ui.legend.text"));
@@ -2354,6 +2413,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
     if (!state.config?.ItemList?.length) setNodeText(dom.txtClockTitle, t("ui.default.clockNotLoaded"));
     else setNodeText(dom.txtClockTitle, getClockDisplayName(state.config));
+    refreshToolbarClockIdUi();
   }
 
   function rebuildLanguageSelector() {
@@ -2436,7 +2496,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
     const itemList = (Array.isArray(base.ItemList) ? base.ItemList : []).map((it, idx) => normalizeItem(it, idx));
     const itemIdList = itemList.map((it, idx) => String(it.item_id || `item_${idx + 1}`));
-    return {
+    const tplAsset = toNum(base.TemplateAssetClockId, 0);
+    const merged = {
       ...base,
       NameCn: String(base.NameCn ?? base.NameEn ?? "Untitled"),
       NameEn: String(base.NameEn ?? base.NameCn ?? "Untitled"),
@@ -2444,17 +2505,39 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       ItemList: itemList,
       ItemIdList: itemIdList
     };
+    if (tplAsset > 0) merged.TemplateAssetClockId = tplAsset;
+    else delete merged.TemplateAssetClockId;
+    return merged;
+  }
+
+  /** 解析 template/15、template/29 等资源包用的 ClockId：`ClockId` 为设备/未下发 0 时仍用复制的模板锚点加载内置文件。 */
+  function resolveTemplate29PackClockId(cfg = state.config) {
+    const pack = cfg && typeof cfg === "object" ? toNum(cfg.TemplateAssetClockId, 0) : 0;
+    if (pack > 0) return pack;
+    return cfg && typeof cfg === "object" ? toNum(cfg.ClockId, 0) : 0;
   }
 
   function syncItemIdList() {
     state.config.ItemIdList = state.config.ItemList.map((it, idx) => String(it.item_id || `item_${idx + 1}`));
   }
 
+  /** UI 为简体中文时读取中文名；其余语言（含繁体、英语等）模板/表盘名称统一以英文为主。 */
+  function isUiZhCnLocale() {
+    return String(getLocaleCode() || "").toLowerCase() === "zh-cn";
+  }
+
+  /** 成对的中/英名称：仅 zh-CN 界面用中文优先，否则英文优先。 */
+  function localizedDualName(nameCn, nameEn, fallback = "") {
+    const cn = String(nameCn ?? "").trim();
+    const en = String(nameEn ?? "").trim();
+    if (isUiZhCnLocale()) return cn || en || fallback;
+    return en || cn || fallback;
+  }
+
   function getClockDisplayName(config) {
     if (!config) return t("ui.default.untitled");
-    const locale = getLocaleCode();
-    if (locale === "en-US") return config.NameEn || config.NameCn || t("ui.default.untitled");
-    return config.NameCn || config.NameEn || t("ui.default.untitled");
+    const fb = t("ui.default.untitled");
+    return localizedDualName(config.NameCn, config.NameEn, fb);
   }
 
   function normalizeTemplateClassifyClockIds(rawIds) {
@@ -2490,21 +2573,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return rows;
   }
 
-  function getTemplateCategoryLabelText() {
-    const locale = String(getLocaleCode() || "").toLowerCase();
-    if (locale.startsWith("en")) return "Template Category";
-    return "模板分类";
-  }
-
   function getTemplateClassifyDisplayName(row) {
-    const locale = String(getLocaleCode() || "").toLowerCase();
     const nameCn = String(row?.ClassifyName || "").trim();
     const nameEn = String(row?.ClassifyNameEn || "").trim();
     const fallbackId = toNum(row?.ClassifyId, 0);
     const fallback = fallbackId > 0 ? `Classify ${fallbackId}` : t("ui.default.untitled");
-    if (locale.startsWith("zh")) return nameCn || nameEn || fallback;
-    if (locale.startsWith("en")) return nameEn || nameCn || fallback;
-    return nameCn || nameEn || fallback;
+    return localizedDualName(nameCn, nameEn, fallback);
   }
 
   function getSelectedTemplateClassifyRow() {
@@ -2519,33 +2593,97 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
   function refreshTemplateCategorySelectorUi() {
     syncTemplateDomRefs();
-    if (!dom.selectTemplateCategory) return;
     const previousSelected = toNum(templateState.selectedClassifyId, NaN);
-    dom.selectTemplateCategory.innerHTML = "";
+    if (dom.selectTemplateCategory) dom.selectTemplateCategory.innerHTML = "";
+    if (dom.templateCategoryRail) dom.templateCategoryRail.innerHTML = "";
 
     if (!templateState.classifyRows.length) {
-      const emptyOpt = document.createElement("option");
-      emptyOpt.value = "";
-      emptyOpt.textContent = t("template.hint.empty");
-      dom.selectTemplateCategory.appendChild(emptyOpt);
-      dom.selectTemplateCategory.disabled = true;
+      if (dom.selectTemplateCategory) {
+        const emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = t("template.hint.empty");
+        dom.selectTemplateCategory.appendChild(emptyOpt);
+        dom.selectTemplateCategory.disabled = true;
+      }
+      if (dom.templateCategoryRail) {
+        const empty = document.createElement("div");
+        empty.className = "template-category-empty";
+        empty.textContent = t("template.hint.empty");
+        dom.templateCategoryRail.appendChild(empty);
+      }
       templateState.selectedClassifyId = null;
       return;
-    }
-
-    for (const row of templateState.classifyRows) {
-      const opt = document.createElement("option");
-      opt.value = String(row.ClassifyId);
-      opt.textContent = `${getTemplateClassifyDisplayName(row)} (${row.availableIds.length})`;
-      dom.selectTemplateCategory.appendChild(opt);
     }
 
     const hasPrevious = templateState.classifyRows.some((row) => row.ClassifyId === previousSelected);
     templateState.selectedClassifyId = hasPrevious
       ? previousSelected
       : templateState.classifyRows[0].ClassifyId;
-    dom.selectTemplateCategory.value = String(templateState.selectedClassifyId);
-    dom.selectTemplateCategory.disabled = false;
+
+    for (const row of templateState.classifyRows) {
+      const label = getTemplateClassifyDisplayName(row);
+      const active = row.ClassifyId === templateState.selectedClassifyId;
+      if (dom.selectTemplateCategory) {
+        const opt = document.createElement("option");
+        opt.value = String(row.ClassifyId);
+        opt.textContent = `${label} (${row.availableIds.length})`;
+        dom.selectTemplateCategory.appendChild(opt);
+      }
+      if (dom.templateCategoryRail) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "template-category-card";
+        btn.classList.toggle("active", active);
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-selected", String(active));
+        btn.dataset.classifyId = String(row.ClassifyId);
+
+        const firstId = toNum(row.availableIds?.[0], NaN);
+        if (Number.isFinite(firstId)) {
+          const img = document.createElement("img");
+          img.alt = "";
+          img.decoding = "async";
+          img.loading = "lazy";
+          img.src = `${TEMPLATE_PREVIEW_DIR_33}${firstId + 1}.png`;
+          btn.appendChild(img);
+        }
+
+        const text = document.createElement("span");
+        text.className = "template-category-card-text";
+        text.textContent = label;
+        const count = document.createElement("span");
+        count.className = "template-category-card-count";
+        count.textContent = String(row.availableIds.length);
+        btn.append(text, count);
+        btn.addEventListener("click", () => {
+          void selectTemplateClassify(row.ClassifyId, { previewFirst: true });
+        });
+        dom.templateCategoryRail.appendChild(btn);
+      }
+    }
+
+    if (dom.selectTemplateCategory) {
+      dom.selectTemplateCategory.value = String(templateState.selectedClassifyId);
+      dom.selectTemplateCategory.disabled = false;
+    }
+  }
+
+  async function selectTemplateClassify(classifyId, opts = {}) {
+    const nextClassifyId = toNum(classifyId, NaN);
+    templateState.selectedClassifyId = Number.isFinite(nextClassifyId) ? nextClassifyId : null;
+    if (dom.selectTemplateCategory) dom.selectTemplateCategory.value = String(templateState.selectedClassifyId ?? "");
+    const row = getSelectedTemplateClassifyRow();
+    const firstId = toNum(row?.availableIds?.[0], NaN);
+    if (Number.isFinite(firstId) && opts.previewFirst) {
+      templateState.activeClockId = firstId;
+    } else if (row && !row.availableIds.some((id) => Number(id) === Number(templateState.activeClockId))) {
+      templateState.activeClockId = null;
+    }
+    refreshTemplateCategorySelectorUi();
+    refreshTemplateListUi();
+    if (Number.isFinite(firstId) && opts.previewFirst) {
+      await previewTemplateWatchface(firstId);
+    }
   }
 
   function rebuildTemplateClassifyRows() {
@@ -2571,14 +2709,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     const meta = templateState.metaById.get(id) || normalizeTemplateNameMeta(null, id);
     const nameCn = String(meta.NameCn || "").trim();
     const nameEn = String(meta.NameEn || "").trim();
-    const locale = String(getLocaleCode() || "").toLowerCase();
     const fallbackClockId = toNum(meta.ClockId, toNum(id, 0));
     const fallback = fallbackClockId > 0
       ? `ClockId ${fallbackClockId}`
       : (toNum(id, 0) > 0 ? String(toNum(id, 0)) : t("ui.default.untitled"));
-    if (locale.startsWith("zh")) return nameCn || nameEn || fallback;
-    if (locale.startsWith("en")) return nameEn || nameCn || fallback;
-    return nameCn || nameEn || fallback;
+    return localizedDualName(nameCn, nameEn, fallback);
   }
 
   async function loadTemplateNameMetaByIds(ids, concurrency = TEMPLATE_NAME_SCAN_CONCURRENCY) {
@@ -2638,31 +2773,33 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function refreshLanActionButtons() {
-    const btnC = dom.btnLanCreate;
-    const btnA = dom.btnLanApply;
-    if (!btnC || !btnA) return;
+    const btn = dom.btnLanApplyWatchfaceConfig;
+    if (!btn) return;
     if (sidebarBrowseMode === "template") {
-      btnC.disabled = true;
-      btnA.disabled = true;
+      btn.disabled = true;
       return;
     }
     const dirty = getLanDirtySnapshot() !== lanBaselineSignature;
-    btnC.disabled = !dirty;
-    btnA.disabled = !dirty;
+    btn.disabled = !dirty;
   }
 
   function refreshSidebarBrowseChrome() {
     const templateTabActive = sidebarBrowseMode === "template";
 
-    dom.mainLayout?.classList.toggle("sidebar-browse-template", templateTabActive);
+    const main = dom.mainLayout;
+    if (main) {
+      main.classList.toggle("layout-mode-local", !templateTabActive);
+      main.classList.toggle("layout-mode-template", templateTabActive);
+    }
 
-    dom.sidebarTabLocal?.classList.toggle("sidebar-watch-tab-active", !templateTabActive);
-    dom.sidebarTabTemplate?.classList.toggle("sidebar-watch-tab-active", templateTabActive);
-    dom.sidebarTabLocal?.setAttribute("aria-selected", String(!templateTabActive));
-    dom.sidebarTabTemplate?.setAttribute("aria-selected", String(templateTabActive));
+    dom.appModeLocal?.classList.toggle("app-mode-strip__btn-active", !templateTabActive);
+    dom.appModeTemplate?.classList.toggle("app-mode-strip__btn-active", templateTabActive);
+    dom.appModeLocal?.setAttribute("aria-selected", String(!templateTabActive));
+    dom.appModeTemplate?.setAttribute("aria-selected", String(templateTabActive));
 
-    if (dom.sidebarPanelLocal) dom.sidebarPanelLocal.hidden = templateTabActive;
-    if (dom.sidebarPanelTemplate) dom.sidebarPanelTemplate.hidden = !templateTabActive;
+    if (dom.panelLocalShell) dom.panelLocalShell.hidden = templateTabActive;
+    if (dom.panelTemplateShell) dom.panelTemplateShell.hidden = !templateTabActive;
+    if (dom.topbarShellLocalOnly) dom.topbarShellLocalOnly.hidden = templateTabActive;
 
     dom.rightEditorPanel?.toggleAttribute("inert", templateTabActive);
 
@@ -2680,6 +2817,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     }
 
     refreshLanActionButtons();
+    refreshToolbarClockIdUi();
   }
 
   function onLocalConfigEdited() {
@@ -2719,10 +2857,13 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       saveNamedDialogResolver = resolve;
       const blocking = mode === "blocking";
       const applyTpl = mode === "apply_template";
+      const newWatchface = mode === "new_watchface";
+
       if (dom.localSaveNamedLater)
-        dom.localSaveNamedLater.hidden = blocking || applyTpl;
+        dom.localSaveNamedLater.hidden = blocking || applyTpl || newWatchface;
       if (dom.localSaveNamedDiscard) dom.localSaveNamedDiscard.hidden = !blocking;
-      if (dom.localSaveNamedCancel) dom.localSaveNamedCancel.hidden = !blocking && !applyTpl;
+      if (dom.localSaveNamedCancel)
+        dom.localSaveNamedCancel.hidden = !(blocking || applyTpl || newWatchface);
 
       if (blocking) {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleBlocking"));
@@ -2736,6 +2877,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       } else if (applyTpl) {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleApplyTemplate"));
         setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyApplyTemplate"));
+      } else if (newWatchface) {
+        setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleNew"));
+        setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyNew"));
       } else {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleFirst"));
         setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyFirst"));
@@ -2744,10 +2888,14 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       setNodeText(dom.localSaveNamedLater, t("localWatch.dialog.later"));
       setNodeText(dom.localSaveNamedDiscard, t("localWatch.dialog.discard"));
       setNodeText(dom.localSaveNamedCancel, t("lan.dialog.cancel"));
-      setNodeText(dom.localSaveNamedSubmit, t("localWatch.dialog.save"));
+      setNodeText(
+        dom.localSaveNamedSubmit,
+        newWatchface ? t("localWatch.dialog.create") : t("localWatch.dialog.save")
+      );
 
       if (dom.localSaveNamedInput) {
-        dom.localSaveNamedInput.value = getClockDisplayName(state.config) || "";
+        dom.localSaveNamedInput.value =
+          newWatchface ? "" : getClockDisplayName(state.config) || "";
       }
       dom.localSaveNamedDialog?.showModal();
       window.requestAnimationFrame(() => {
@@ -2823,14 +2971,24 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     }
   }
 
-  async function persistNewNamedWatchface(name) {
+  async function persistNewNamedWatchface(name, opts = {}) {
     const nm = String(name || "").trim();
     if (!nm) return;
+    const tplAnchor = toNum(opts.assetPackClockId, 0);
+    const curClock = toNum(state.config.ClockId, 0);
+    const existingPack = toNum(state.config.TemplateAssetClockId, 0);
+    if (tplAnchor > 0) {
+      state.config.TemplateAssetClockId = tplAnchor;
+    } else if (curClock > 0 && existingPack <= 0) {
+      state.config.TemplateAssetClockId = curClock;
+    }
     const id = newWatchfaceId();
     activeLocalWatchfaceId = id;
+    state.config.ClockId = 0;
     state.config.NameCn = nm;
     state.config.NameEn = nm;
     dom.txtClockTitle.textContent = nm;
+    refreshToolbarClockIdUi();
     rebuildItemEditor();
     await flushPersistActiveWorkspace();
     setLastActiveId(id);
@@ -2936,7 +3094,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     refreshSidebarBrowseChrome();
     refreshTemplateListUi();
 
-    await persistNewNamedWatchface(nm);
+    await persistNewNamedWatchface(nm, { assetPackClockId: tplId });
     refreshLocalWatchfaceListUi();
     fontStore.log(t("browseTemplate.savedFromTemplate", { name: nm, templateId: tplId }));
   }
@@ -3004,6 +3162,14 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
   async function restoreWorkspaceFromRecord(rec) {
     applyConfig(rec.config, t("localWatch.loaded", { name: rec.name }));
+    let packId = resolveTemplate29PackClockId(state.config);
+    if (packId <= 0 && rec.templateActiveClockId != null) {
+      const fid = toNum(rec.templateActiveClockId, 0);
+      if (fid > 0) {
+        state.config.TemplateAssetClockId = fid;
+        packId = fid;
+      }
+    }
     state.previewTextOverrides = new Map(Object.entries(rec.previewOverrides || {}));
     state.width = clamp(toNum(rec.width, 800), 64, 4000);
     state.height = clamp(toNum(rec.height, 1280), 64, 4000);
@@ -3041,6 +3207,24 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       state.backgroundSourceLabel = "";
     }
     refreshBackgroundSourceLabel();
+
+    if (packId > 0) {
+      const token = ++templateState.loadToken;
+      await applyTemplateImageAssetsByClockId(packId, token);
+      if (!rec.backgroundDataUrl && !state.backgroundImage) {
+        const bgResult = await loadTemplateBackgroundByClockId(packId);
+        if (token === templateState.loadToken && bgResult?.asset) {
+          setBackgroundFromAsset(bgResult.asset);
+          state.backgroundSourceLabel = bgResult.path
+            ? absoluteUrlFromResolvedPath(String(bgResult.path).trim())
+            : "";
+          refreshBackgroundSourceLabel();
+        } else if (bgResult?.asset) {
+          releaseStandaloneAsset(bgResult.asset);
+        }
+      }
+    }
+
     rebuildItemEditor();
     renderWatchface();
     applyCanvasZoom();
@@ -3095,6 +3279,17 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     if (sidebarBrowseMode === "template") return;
     const ok = await ensureWorkspaceHandledBeforeSwitch("new");
     if (!ok) return;
+
+    const r = await openLocalSaveNamedDialog({ mode: "new_watchface" });
+    if (r.action !== "save") return;
+
+    const nm = String(r.name || "").trim();
+    if (!nm) {
+      alert(t("lan.err.emptyName"));
+      return;
+    }
+
+    namingPromptDismissed = true;
     activeLocalWatchfaceId = "";
     templateState.activeClockId = null;
     refreshTemplateListUi();
@@ -3113,8 +3308,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       },
       t("localWatch.newBlank")
     );
-    namingPromptDismissed = false;
-    syncWorkspaceBaseline();
+
+    await persistNewNamedWatchface(nm);
     refreshLocalWatchfaceListUi();
   }
 
@@ -3244,6 +3439,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     raw.NameCn = clockName;
     raw.NameEn = clockName;
     raw.ClockId = 0;
+    delete raw.TemplateAssetClockId;
     return raw;
   }
 
@@ -3296,39 +3492,101 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return data;
   }
 
-  async function onLanApplyClick() {
-    if (!state.config.ItemList.length) {
-      alert(t("lan.err.emptyItemList"));
-      return;
+  function extractLanResponseClockId(data) {
+    if (!data || typeof data !== "object") return NaN;
+    const tryNum = (v) => {
+      const n = toNum(v, NaN);
+      return Number.isFinite(n) && n > 0 ? n : NaN;
+    };
+    const immediate = [
+      tryNum(data.ClockId),
+      tryNum(data.clockId),
+      tryNum(data.ClockID),
+      tryNum(data.ReturnData?.ClockId),
+      tryNum(data.ReturnData?.clockId),
+      tryNum(data.returnData?.ClockId),
+      tryNum(data.DeviceClock?.ClockId),
+      tryNum(data.data?.ClockId)
+    ].find(Number.isFinite);
+    if (Number.isFinite(immediate)) return immediate;
+    const nestedLists = [
+      data.ClockIdList,
+      data.ClockIds,
+      data.ClockIDs,
+      data.ReturnData?.ClockIdList,
+      data.DeviceClockList
+    ];
+    for (const lst of nestedLists) {
+      if (!Array.isArray(lst) || !lst.length) continue;
+      const last = lst[lst.length - 1];
+      const n = typeof last === "object" && last !== null ? tryNum(last.ClockId) : tryNum(last);
+      if (Number.isFinite(n)) return n;
     }
-    const btn = dom.btnLanApply;
-    if (btn) btn.disabled = true;
-    try {
-      fontStore.log(t("lan.busy"));
-      await divoomJson("Device/PatchLocalClockInfo", buildPatchPayload());
-      fontStore.log(t("lan.success.patch"));
-      alert(t("lan.success.patch"));
-      captureLanBaseline();
-    } catch (e) {
-      alert(errorToText(e));
-      refreshLanActionButtons();
-    }
+    return NaN;
   }
 
-  async function runLanCreateWithName(name) {
+  function openLanCreateNameDialogForDeviceCreate() {
+    if (!dom.lanCreateDialog?.showModal) {
+      alert(t("lan.dialog.missing"));
+      return;
+    }
+    if (dom.lanCreateName) {
+      dom.lanCreateName.value = getClockDisplayName(state.config) || "";
+      dom.lanCreateName.focus();
+      dom.lanCreateName.select?.();
+    }
+    dom.lanCreateDialog.showModal();
+  }
+
+  async function onLanApplyWatchfaceConfigClick() {
     if (!state.config.ItemList.length) {
       alert(t("lan.err.emptyItemList"));
       return;
     }
-    const btn = dom.btnLanCreate;
+    const clockId = toNum(state.config.ClockId, 0);
+    if (clockId > 0) {
+      const btn = dom.btnLanApplyWatchfaceConfig;
+      if (btn) btn.disabled = true;
+      try {
+        fontStore.log(t("lan.busy"));
+        await divoomJson("Device/PatchLocalClockInfo", buildPatchPayload());
+        fontStore.log(t("lan.success.patch"));
+        alert(t("lan.success.patch"));
+        captureLanBaseline();
+      } catch (e) {
+        alert(errorToText(e));
+        refreshLanActionButtons();
+      } finally {
+        refreshLanActionButtons();
+      }
+      return;
+    }
+    openLanCreateNameDialogForDeviceCreate();
+  }
+
+  async function lanSubmitDeviceCreateWithName(name) {
+    if (!state.config.ItemList.length) {
+      alert(t("lan.err.emptyItemList"));
+      return;
+    }
+    const btn = dom.btnLanApplyWatchfaceConfig;
     if (btn) btn.disabled = true;
     try {
       fontStore.log(t("lan.busy"));
       const meta = buildCreateClockMetadata(name);
       const blob = await renderDialBackgroundJpegBlob();
-      await divoomCreateMultipart(meta, blob);
-      fontStore.log(t("lan.success.create"));
-      alert(t("lan.success.create"));
+      const data = await divoomCreateMultipart(meta, blob);
+      const createdId = extractLanResponseClockId(data);
+      if (Number.isFinite(createdId) && createdId > 0) {
+        state.config.ClockId = createdId;
+        refreshToolbarClockIdUi();
+        rebuildItemEditor();
+        fontStore.log(t("lan.success.createClockIdApplied", { id: createdId }));
+        alert(t("lan.success.createClockIdApplied", { id: createdId }));
+      } else {
+        fontStore.log(t("lan.success.create"));
+        alert(t("lan.success.create"));
+      }
       captureLanBaseline();
       if (activeLocalWatchfaceId) await flushPersistActiveWorkspace();
       refreshLocalWatchfaceListUi();
@@ -3336,7 +3594,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       alert(errorToText(e));
       refreshLanActionButtons();
     } finally {
-      if (btn) btn.disabled = false;
       refreshLanActionButtons();
     }
   }
@@ -3445,17 +3702,10 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function wireLanUi() {
-    if (dom.btnLanCreate) {
-      dom.btnLanCreate.addEventListener("click", () => {
-        if (dom.btnLanCreate.disabled) return;
-        if (dom.lanCreateDialog?.showModal) {
-          if (dom.lanCreateName) {
-            dom.lanCreateName.value = getClockDisplayName(state.config) || "";
-            dom.lanCreateName.focus();
-            dom.lanCreateName.select();
-          }
-          dom.lanCreateDialog.showModal();
-        }
+    if (dom.btnLanApplyWatchfaceConfig) {
+      dom.btnLanApplyWatchfaceConfig.addEventListener("click", () => {
+        if (dom.btnLanApplyWatchfaceConfig.disabled) return;
+        void onLanApplyWatchfaceConfigClick();
       });
     }
     if (dom.lanCreateCancel && dom.lanCreateDialog) {
@@ -3470,13 +3720,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
           return;
         }
         dom.lanCreateDialog?.close();
-        void runLanCreateWithName(name);
-      });
-    }
-    if (dom.btnLanApply) {
-      dom.btnLanApply.addEventListener("click", () => {
-        if (dom.btnLanApply.disabled) return;
-        void onLanApplyClick();
+        void lanSubmitDeviceCreateWithName(name);
       });
     }
   }
@@ -3488,7 +3732,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     state.selectedIndex = state.config.ItemList.length ? 0 : -1;
     syncItemIdList();
     dom.txtClockTitle.textContent = getClockDisplayName(state.config);
-    dom.txtClockId.textContent = String(toNum(state.config.ClockId, 0));
+    refreshToolbarClockIdUi();
     refreshItemListUi();
     rebuildItemEditor();
     renderWatchface();
@@ -4316,7 +4560,18 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         return monEn[now.getMonth()];
       case 31:
         return ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"][now.getDay()];
+      // DIVOOM_CLOCK_DISP_SUPPORT_TEMP_DIGIT：固件为纯数字分段，不包含 °C/°F 等单位
       case 32:
+        return "23";
+      // TEMP_DIGIT2：数字 + °（无 C/F）
+      case 254:
+        return "23°";
+      // TEMP_DIGIT3：数字 + ℃ 或 ℉（设备按设定二选一）；预览示例用 ℃ 字符
+      case 339:
+        return "23℃";
+      // DIVOOM_CLOCK_DISP_SUPPORT_HUMI_ONLY_NUM：仅湿度数值；百分号画在背景图上
+      case 342:
+        return "50";
       case 82:
       case 83:
       case 86:
@@ -4474,6 +4729,70 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       deg = now.getSeconds() * 6;
     }
     return deg;
+  }
+
+  function loadPhotoAlbumDemoImages() {
+    const urls = [1, 2, 3, 4].map((n) => withBase(`pic/${n}@1x.webp`));
+    void Promise.all(
+      urls.map(
+        (url) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            img.decoding = "async";
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = url;
+          })
+      )
+    ).then((imgs) => {
+      photoAlbumDemoImages = imgs.filter(Boolean);
+      renderWatchface();
+    });
+  }
+
+  function drawImageContain(ctx, img, boxX, boxY, boxW, boxH) {
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    if (!iw || !ih) return;
+    const scale = Math.min(boxW / iw, boxH / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const dx = boxX + (boxW - dw) / 2;
+    const dy = boxY + (boxH - dh) / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function drawPhotoAlbumDemoPreview(ctx, item, disp) {
+    if (!PHOTO_ALBUM_PREVIEW_DISP_IDS.has(disp)) return false;
+    const imgs = photoAlbumDemoImages;
+    if (!imgs.length) return false;
+    let st = photoAlbumPreviewItemState.get(item);
+    const now = Date.now();
+    if (!st) {
+      st = { lastSwitch: now, idx: Math.floor(Math.random() * imgs.length) };
+      photoAlbumPreviewItemState.set(item, st);
+    } else if (now - st.lastSwitch >= PHOTO_ALBUM_PREVIEW_ROTATE_MS) {
+      st.lastSwitch = now;
+      let nxt;
+      if (imgs.length <= 1) {
+        nxt = 0;
+      } else {
+        do {
+          nxt = Math.floor(Math.random() * imgs.length);
+        } while (nxt === st.idx);
+      }
+      st.idx = nxt;
+    }
+    const img = imgs[st.idx];
+    if (!img?.naturalWidth) return false;
+    const x = toNum(item.x, 0);
+    const y = toNum(item.y, 0);
+    const w = Math.max(8, toNum(item.w, 50));
+    const h = Math.max(8, toNum(item.h, 50));
+    ctx.fillStyle = colorToRgba(item.color_2, 0.12);
+    ctx.fillRect(x, y, w, h);
+    drawImageContain(ctx, img, x, y, w, h);
+    return true;
   }
 
   function drawPointer(ctx, item, disp) {
@@ -4700,9 +5019,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       if (POINTER_DISP_IDS.has(disp)) {
         if (!drawLocalDispAsset(watchCtx, item, disp)) drawPointer(watchCtx, item, disp);
       } else if (IMAGE_DISP_IDS.has(disp) || item.image_id > 0 || !!item.image_addr) {
-        if (!drawLocalDispAsset(watchCtx, item, disp)) {
-          const lbl = item.image_addr ? `IMG ${disp}` : `PLACEHOLDER ${disp}`;
-          drawImagePlaceholder(watchCtx, item, disp, lbl);
+        if (!(PHOTO_ALBUM_PREVIEW_DISP_IDS.has(disp) && drawPhotoAlbumDemoPreview(watchCtx, item, disp))) {
+          if (!drawLocalDispAsset(watchCtx, item, disp)) {
+            const lbl = item.image_addr ? `IMG ${disp}` : `PLACEHOLDER ${disp}`;
+            drawImagePlaceholder(watchCtx, item, disp, lbl);
+          }
         }
       } else {
         const txt = state.previewTextOverrides.get(idx) || getPlaceholderText(disp, item);
@@ -4997,13 +5318,13 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   function bindEvents() {
     wireLocalWatchDialogs();
 
-    if (dom.sidebarTabLocal) {
-      dom.sidebarTabLocal.addEventListener("click", () => {
+    if (dom.appModeLocal) {
+      dom.appModeLocal.addEventListener("click", () => {
         void activateSidebarLocalEdit();
       });
     }
-    if (dom.sidebarTabTemplate) {
-      dom.sidebarTabTemplate.addEventListener("click", () => {
+    if (dom.appModeTemplate) {
+      dom.appModeTemplate.addEventListener("click", () => {
         void activateSidebarTemplateBrowse();
       });
     }
@@ -5022,25 +5343,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     if (dom.selectTemplateCategory) {
       dom.selectTemplateCategory.addEventListener("change", () => {
         const nextClassifyId = toNum(dom.selectTemplateCategory.value, NaN);
-        templateState.selectedClassifyId = Number.isFinite(nextClassifyId) ? nextClassifyId : null;
-        refreshTemplateListUi();
+        void selectTemplateClassify(nextClassifyId, { previewFirst: true });
       });
     }
-
-    if (dom.btnReloadTemplates) {
-      dom.btnReloadTemplates.addEventListener("click", async () => {
-        await loadTemplateConfigIds();
-      });
-    }
-
-    dom.btnFitResolution.addEventListener("click", () => {
-      const img = state.backgroundImage;
-      if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
-      state.width = clamp(img.naturalWidth, 64, 4000);
-      state.height = clamp(img.naturalHeight, 64, 4000);
-      renderWatchface();
-      onLocalConfigEdited();
-    });
 
     dom.inputZoom.addEventListener("input", () => {
       state.zoom = clamp(toNum(dom.inputZoom.value, 55), 20, 220);
@@ -5149,6 +5454,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     refreshTemplateListUi();
     fontStore.log(t("log.uiBuildVersion", { tag: APP_BUILD_TAG }));
     refreshBackgroundSourceLabel();
+    loadPhotoAlbumDemoImages();
 
     const lastId = getLastActiveId();
     const rec = lastId ? getWatchface(lastId) : null;
