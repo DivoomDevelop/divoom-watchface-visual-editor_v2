@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-13T13:05:01.588Z",
+  "generatedAt": "2026-05-14T03:49:37.617Z",
   "aiWatchfaceGuide": "docs/AI_WATCHFACE_GUIDE.md",
   "schema": "docs/watchface-config.schema.json",
   "exampleMinimal": "docs/examples/ai-minimal-watchface.json",
@@ -9,6 +9,6 @@
     "imageGlyphCount": 34
   },
   "dispCatalog": {
-    "count": 183
+    "count": 187
   }
 }

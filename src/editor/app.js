@@ -207,6 +207,10 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     246: "APP_ITEM_DATA13",
     247: "APP_ITEM_DATA14",
     248: "APP_ITEM_DATA15",
+    348: "ROT_IMG_EFFECT_1",
+    349: "ROT_IMG_EFFECT_2",
+    350: "ROT_IMG_EFFECT_3",
+    352: "ROT_IMG_EFFECT_4",
     260: "WEBP_FULL_WEATHER",
     261: "DIAL_COMPONENT_START",
     279: "DIAL_COMPONENT_END"
@@ -391,6 +395,10 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     246: "app单元项数据13",
     247: "app单元项数据14",
     248: "app单元项数据15",
+    348: "图像旋转效果1（单图 ROT_IMG / mul_flag=0）",
+    349: "图像旋转效果2（单图 ROT_IMG / mul_flag=0）",
+    350: "图像旋转效果3（单图 ROT_IMG / mul_flag=0）",
+    352: "图像旋转效果4（单图 ROT_IMG / mul_flag=0）",
     260: "webp全屏天气，10张图",
     261: "子表盘组件开始ID",
     279: "子表盘组件结束ID"
@@ -401,8 +409,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     81, 85, 89, 93, 98, 105, 107, 108, 110, 111, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137,
     138, 139, 140, 141, 142, 143, 144, 145, 146, 150, 151, 152, 171, 172, 173, 174, 175, 182, 183, 184, 185, 186, 187,
     188, 189, 190, 206, 207, 208, 209, 210, 211, 212, 217, 218, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
-    232, 233, 234, 240, 245, 260
+    232, 233, 234, 240, 245, 260, 348, 349, 350, 352
   ]);
+
+  /** DIVOOM_CLOCK_DISP_SUPPORT_ROTAETE_IMAGE1..4 —— divoom_disp_clock.c / dial_menu ROTATE_IMAGE（mul_flag=0） */
+  const ROTATE_SINGLE_IMAGE_DISP_IDS = new Set([348, 349, 350, 352]);
 
   const POINTER_DISP_IDS = new Set([131, 132, 233]);
   const NETWORK_TEXT_DISP_IDS = new Set([118, 119, 120, 121, 122, 123, 154, 155]);
@@ -417,6 +428,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   const TEMPLATE_CONFIG_DIR = withBase("template/config/");
   const TEMPLATE_DIR_15 = withBase("template/15/");
   const TEMPLATE_DIR_29 = withBase("template/29/");
+  /** template/33 预览缩略图文件名：ClockId + 1（与 template/15 底图等资源命名规则一致）。 */
+  const TEMPLATE_PREVIEW_DIR_33 = withBase("template/33/");
   const TEMPLATE_ORGANIZE_REPORT_PATH = withBase("template/organize-report.json");
   const TEMPLATE_BG_EXT_CANDIDATES = [".bin", ".png", ".jpg", ".jpeg", ".webp", ".gif"];
   const TEMPLATE_IMG_EXT_CANDIDATES = [".bin", ".png", ".webp", ".gif", ".jpg", ".jpeg"];
@@ -666,7 +679,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     [210, { mode: "multiple", value: 30 }],
     [218, { mode: "multiple", value: 2 }],
     [240, { mode: "multiple", value: 20 }],
-    [260, { mode: "exact", value: 10 }]
+    [260, { mode: "exact", value: 10 }],
+    [348, { mode: "any" }],
+    [349, { mode: "any" }],
+    [350, { mode: "any" }],
+    [352, { mode: "any" }]
   ]);
 
   const DEFAULT_ITEM = Object.freeze({
@@ -1912,11 +1929,17 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     lblLanDevice: byId("lbl-lan-device"),
     selectLanDevice: byId("select-lan-device"),
     btnRefreshLanDevices: byId("btn-refresh-lan-devices"),
-    secLocalWatchTitle: byId("sec-local-watch-title"),
+    mainLayout: byId("main-layout"),
+    rightEditorPanel: byId("right-editor-panel"),
+    sidebarTabLocal: byId("sidebar-tab-local"),
+    sidebarTabTemplate: byId("sidebar-tab-template"),
+    sidebarPanelLocal: byId("sidebar-panel-local"),
+    sidebarPanelTemplate: byId("sidebar-panel-template"),
+    btnApplyTemplate: byId("btn-apply-template"),
+    browseTemplateToolbarHint: byId("browse-template-toolbar-hint"),
     btnNewWatchface: byId("btn-new-watchface"),
     localWatchHint: byId("local-watch-hint"),
     localWatchfaceList: byId("local-watchface-list"),
-    secTemplateTitle: byId("sec-template-title"),
     secCanvasTitle: byId("sec-canvas-title"),
     secBackgroundTitle: byId("sec-background-title"),
     secItemlistTitle: byId("sec-itemlist-title"),
@@ -2032,6 +2055,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   let autosaveTimer = 0;
   let namingDebounceTimer = 0;
   let saveNamedDialogResolver = null;
+  /** 左侧：`local`=可编辑本地；`template`=仅浏览内置模板预览 */
+  let sidebarBrowseMode = "local";
+  let templateListNavTimer = 0;
 
   function syncWorkspaceBaseline() {
     workspaceBaselineSig = getLanDirtySnapshot();
@@ -2285,8 +2311,10 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       dom.selectLanDevice.options[0].textContent = t("lan.device.placeholder");
     }
 
-    setNodeText(dom.secLocalWatchTitle, t("ui.sec.localWatch"));
-    setNodeText(dom.secTemplateTitle, t("ui.sec.template"));
+    setNodeText(dom.sidebarTabLocal, t("ui.tab.localWatchfaces"));
+    setNodeText(dom.sidebarTabTemplate, t("ui.tab.templateWatchfaces"));
+    if (dom.btnApplyTemplate) setNodeText(dom.btnApplyTemplate, t("ui.btn.applyTemplate"));
+
     setNodeText(dom.secCanvasTitle, t("ui.sec.canvas"));
     setNodeText(dom.secBackgroundTitle, t("ui.sec.background"));
     setNodeText(dom.secItemlistTitle, t("ui.sec.items"));
@@ -2356,6 +2384,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     renderFontPreview();
     refreshLanActionButtons();
     refreshLocalWatchfaceListUi();
+    refreshSidebarBrowseChrome();
   }
 
   function createDefaultItem(index) {
@@ -2612,9 +2641,45 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     const btnC = dom.btnLanCreate;
     const btnA = dom.btnLanApply;
     if (!btnC || !btnA) return;
+    if (sidebarBrowseMode === "template") {
+      btnC.disabled = true;
+      btnA.disabled = true;
+      return;
+    }
     const dirty = getLanDirtySnapshot() !== lanBaselineSignature;
     btnC.disabled = !dirty;
     btnA.disabled = !dirty;
+  }
+
+  function refreshSidebarBrowseChrome() {
+    const templateTabActive = sidebarBrowseMode === "template";
+
+    dom.mainLayout?.classList.toggle("sidebar-browse-template", templateTabActive);
+
+    dom.sidebarTabLocal?.classList.toggle("sidebar-watch-tab-active", !templateTabActive);
+    dom.sidebarTabTemplate?.classList.toggle("sidebar-watch-tab-active", templateTabActive);
+    dom.sidebarTabLocal?.setAttribute("aria-selected", String(!templateTabActive));
+    dom.sidebarTabTemplate?.setAttribute("aria-selected", String(templateTabActive));
+
+    if (dom.sidebarPanelLocal) dom.sidebarPanelLocal.hidden = templateTabActive;
+    if (dom.sidebarPanelTemplate) dom.sidebarPanelTemplate.hidden = !templateTabActive;
+
+    dom.rightEditorPanel?.toggleAttribute("inert", templateTabActive);
+
+    const hintEl = dom.browseTemplateToolbarHint;
+    if (hintEl) {
+      hintEl.hidden = !templateTabActive;
+      if (templateTabActive) setNodeText(hintEl, t("browseTemplate.toolbarHint"));
+    }
+
+    const btnApply = dom.btnApplyTemplate;
+    if (btnApply) {
+      const idSel = toNum(templateState.activeClockId, NaN);
+      btnApply.disabled =
+        !templateTabActive || !Number.isFinite(idSel) || templateState.loading;
+    }
+
+    refreshLanActionButtons();
   }
 
   function onLocalConfigEdited() {
@@ -2653,17 +2718,24 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return new Promise((resolve) => {
       saveNamedDialogResolver = resolve;
       const blocking = mode === "blocking";
-      if (dom.localSaveNamedLater) dom.localSaveNamedLater.hidden = blocking;
+      const applyTpl = mode === "apply_template";
+      if (dom.localSaveNamedLater)
+        dom.localSaveNamedLater.hidden = blocking || applyTpl;
       if (dom.localSaveNamedDiscard) dom.localSaveNamedDiscard.hidden = !blocking;
-      if (dom.localSaveNamedCancel) dom.localSaveNamedCancel.hidden = !blocking;
+      if (dom.localSaveNamedCancel) dom.localSaveNamedCancel.hidden = !blocking && !applyTpl;
 
       if (blocking) {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleBlocking"));
         const bodyKey =
           context === "template"
             ? "localWatch.dialog.bodyBlockingTemplate"
-            : "localWatch.dialog.bodyBlockingLeave";
+            : context === "tab_template"
+              ? "localWatch.dialog.bodyBlockingTabTemplate"
+              : "localWatch.dialog.bodyBlockingLeave";
         setNodeText(dom.localSaveNamedBody, t(bodyKey));
+      } else if (applyTpl) {
+        setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleApplyTemplate"));
+        setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyApplyTemplate"));
       } else {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleFirst"));
         setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyFirst"));
@@ -2686,6 +2758,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   async function maybeOpenFirstEditNamingDialog() {
+    if (sidebarBrowseMode === "template") return;
     if (activeLocalWatchfaceId) return;
     if (namingPromptDismissed) return;
     if (!isWorkspaceDirtyVsBaseline()) return;
@@ -2767,6 +2840,107 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     fontStore.log(t("localWatch.savedAs", { name: nm }));
   }
 
+  async function activateSidebarTemplateBrowse() {
+    if (sidebarBrowseMode === "template") return;
+
+    syncTemplateDomRefs();
+    const ok = await ensureWorkspaceHandledBeforeSwitch("tab_template");
+    if (!ok) return;
+
+    sidebarBrowseMode = "template";
+    refreshSidebarBrowseChrome();
+
+    const selectedClassify = getSelectedTemplateClassifyRow();
+    const filtered = selectedClassify ? [...selectedClassify.availableIds] : [];
+
+    if (!filtered.length) {
+      templateState.activeClockId = null;
+      refreshSidebarBrowseChrome();
+      refreshTemplateListUi();
+      return;
+    }
+
+    let idToPreview = toNum(templateState.activeClockId, NaN);
+    const inList = filtered.some((x) => Number(x) === Number(idToPreview));
+
+    if (!Number.isFinite(idToPreview) || !inList) {
+      idToPreview = toNum(filtered[0], NaN);
+    }
+
+    await previewTemplateWatchface(idToPreview);
+  }
+
+  async function activateSidebarLocalEdit() {
+    if (sidebarBrowseMode === "local") return;
+
+    sidebarBrowseMode = "local";
+    refreshSidebarBrowseChrome();
+
+    templateState.activeClockId = null;
+    refreshTemplateListUi();
+
+    const idRaw = activeLocalWatchfaceId || getLastActiveId();
+    const rec = idRaw ? getWatchface(idRaw) : null;
+
+    if (rec && idRaw) {
+      activeLocalWatchfaceId = String(idRaw);
+      await restoreWorkspaceFromRecord(rec);
+      namingPromptDismissed = true;
+    } else {
+      activeLocalWatchfaceId = "";
+      clearBackgroundObjectUrl();
+      state.backgroundImage = null;
+      state.backgroundName = "";
+      state.backgroundSourceLabel = "";
+      if (dom.inputBgFile) dom.inputBgFile.value = "";
+      refreshBackgroundSourceLabel();
+      applyConfig(
+        {
+          ClockId: 0,
+          NameCn: t("ui.default.untitled"),
+          NameEn: "Untitled",
+          ItemList: [createDefaultItem(0)]
+        },
+        t("source.init")
+      );
+      namingPromptDismissed = false;
+      syncWorkspaceBaseline();
+      captureLanBaseline();
+    }
+
+    refreshLocalWatchfaceListUi();
+  }
+
+  async function applyTemplateDraftToNamedLocalWatchface(prefTplIdOpt) {
+    if (sidebarBrowseMode !== "template") return;
+    const tplId = toNum(prefTplIdOpt ?? templateState.activeClockId, NaN);
+    if (!Number.isFinite(tplId)) {
+      alert(t("template.err.noneSelected"));
+      return;
+    }
+
+    await previewTemplateWatchface(tplId);
+
+    const r = await openLocalSaveNamedDialog({ mode: "apply_template" });
+    if (r.action === "cancel" || r.action === "later") return;
+    if (r.action !== "save") return;
+
+    const nm = String(r.name || "").trim();
+    if (!nm) {
+      alert(t("lan.err.emptyName"));
+      return;
+    }
+
+    templateState.activeClockId = null;
+    sidebarBrowseMode = "local";
+    refreshSidebarBrowseChrome();
+    refreshTemplateListUi();
+
+    await persistNewNamedWatchface(nm);
+    refreshLocalWatchfaceListUi();
+    fontStore.log(t("browseTemplate.savedFromTemplate", { name: nm, templateId: tplId }));
+  }
+
   async function ensureWorkspaceHandledBeforeSwitch(context) {
     window.clearTimeout(namingDebounceTimer);
     if (!isWorkspaceDirtyVsBaseline()) return true;
@@ -2810,11 +2984,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       const title = document.createElement("span");
       title.className = "template-id";
       title.textContent = row.name || row.id;
-      const meta = document.createElement("span");
-      meta.className = "template-file";
-      const ts = row.updatedAt ? new Date(row.updatedAt).toLocaleString() : "";
-      meta.textContent = ts;
-      main.append(title, meta);
+      main.append(title);
       main.addEventListener("click", () => {
         void loadLocalWatchfaceById(row.id);
       });
@@ -2922,6 +3092,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   async function startNewBlankWatchface() {
+    if (sidebarBrowseMode === "template") return;
     const ok = await ensureWorkspaceHandledBeforeSwitch("new");
     if (!ok) return;
     activeLocalWatchfaceId = "";
@@ -3342,13 +3513,47 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       for (const id of filtered) {
         const li = document.createElement("li");
         if (templateState.activeClockId === id) li.classList.add("active");
-        const name = document.createElement("span");
-        name.className = "template-id";
-        name.textContent = getTemplateListItemName(id);
-        li.append(name);
+        const row = document.createElement("div");
+        row.className = "template-row-thumb";
+
+        const img = document.createElement("img");
+        img.className = "template-thumb-preview";
+        img.alt = "";
+        img.decoding = "async";
+        img.loading = "lazy";
+        img.src = `${TEMPLATE_PREVIEW_DIR_33}${id + 1}.png`;
+
+        const textWrap = document.createElement("div");
+        textWrap.className = "template-thumb-text";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "template-id";
+        nameSpan.textContent = getTemplateListItemName(id);
+
+        const sub = document.createElement("span");
+        sub.className = "template-thumb-sub";
+        sub.textContent = t("template.item.file", { id });
+
+        textWrap.append(nameSpan, sub);
+        row.append(img, textWrap);
+        li.append(row);
+
         li.addEventListener("click", () => {
-          applyTemplateByClockId(id);
+          window.clearTimeout(templateListNavTimer);
+          templateState.activeClockId = id;
+          refreshSidebarBrowseChrome();
+          templateListNavTimer = window.setTimeout(() => {
+            void previewTemplateWatchface(id);
+          }, 280);
         });
+        li.addEventListener("dblclick", (ev) => {
+          ev.preventDefault();
+          window.clearTimeout(templateListNavTimer);
+          templateState.activeClockId = id;
+          refreshSidebarBrowseChrome();
+          void applyTemplateDraftToNamedLocalWatchface(id);
+        });
+
         dom.templateList.appendChild(li);
       }
     }
@@ -3358,10 +3563,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     } else if (templateState.error) {
       dom.templateHint.textContent = t("template.hint.error", { message: templateState.error });
     } else if (selectedClassify && filtered.length) {
-      dom.templateHint.textContent = t("template.hint.loaded", { count: filtered.length });
+      dom.templateHint.textContent = t("template.hint.browse", { count: filtered.length });
     } else {
       dom.templateHint.textContent = t("template.hint.empty");
     }
+
+    refreshSidebarBrowseChrome();
   }
 
   async function doesTemplateConfigExist(id) {
@@ -3531,12 +3738,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return { aborted: false, total, loaded, missing, unmapped };
   }
 
-  async function applyTemplateByClockId(clockId) {
+  async function previewTemplateWatchface(clockId) {
     const id = toNum(clockId, NaN);
     if (!Number.isFinite(id)) return;
-
-    const proceed = await ensureWorkspaceHandledBeforeSwitch("template");
-    if (!proceed) return;
 
     window.clearTimeout(namingDebounceTimer);
 
@@ -3544,6 +3748,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     templateState.activeClockId = id;
     activeLocalWatchfaceId = "";
     namingPromptDismissed = false;
+    refreshSidebarBrowseChrome();
     refreshTemplateListUi();
     fontStore.log(t("log.templateApplying", { id }));
 
@@ -3556,6 +3761,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     if (token !== templateState.loadToken) return;
     if (!raw) {
       templateState.activeClockId = null;
+      refreshSidebarBrowseChrome();
       refreshTemplateListUi();
       state.backgroundSourceLabel = "";
       refreshBackgroundSourceLabel();
@@ -3604,6 +3810,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     refreshTemplateListUi();
     captureLanBaseline();
     syncWorkspaceBaseline();
+    refreshSidebarBrowseChrome();
   }
 
   function refreshItemListUi() {
@@ -3936,8 +4143,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     const fontId = resolveItemFontId(item);
     const isImageFont = fontStore.isImageFont(fontId);
 
+    const rotateSingleImage = ROTATE_SINGLE_IMAGE_DISP_IDS.has(currentDisp);
     editorFields.forEach((field) => {
-      const hideByImageDisp = isImageLikeDisp && IMAGE_EDITOR_HIDDEN_FIELDS.has(field.key);
+      const hideByImageDisp =
+        isImageLikeDisp &&
+        IMAGE_EDITOR_HIDDEN_FIELDS.has(field.key) &&
+        !(rotateSingleImage && (field.key === "sep" || field.key === "size"));
       if (hideByImageDisp) return;
       if (isImageFont && !IMAGE_FONT_EDITOR_VISIBLE_KEYS.has(field.key)) return;
       const wrap = document.createElement("label");
@@ -4229,6 +4440,30 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     ctx.drawImage(img, dx, dy, dw, dh);
   }
 
+  /**
+   * PC 预览近似 LVGL divoom_lvgl_dial_menu_add_rotate_image_handle（mul_flag=0）：
+   * angle→摆动幅度或 360°整圈；sep→rotate_time 周期(ms)；size→rotate_flag（固件映射 font_size）。
+   */
+  function computeRotateSingleImageAngleDeg(item, nowMs = Date.now()) {
+    const angleVal = toNum(item.angle, 0);
+    const rotateFlag = toNum(item.size ?? item.font_size, 0) !== 0;
+    const periodMs = Math.max(300, toNum(item.sep, 4000));
+
+    if (!angleVal) return 0;
+
+    if (angleVal >= 359.5 && angleVal <= 360.5) {
+      const frac = (nowMs % periodMs) / periodMs;
+      let deg = frac * 360;
+      if (!rotateFlag) deg = 360 - deg;
+      return deg;
+    }
+
+    const omega = (2 * Math.PI) / periodMs;
+    let deg = angleVal * Math.sin(nowMs * omega);
+    if (rotateFlag) deg = -deg;
+    return deg;
+  }
+
   function getPointerDegree(disp, now = new Date()) {
     let deg = 0;
     if (disp === 131) {
@@ -4289,6 +4524,17 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(deg * Math.PI / 180);
+      ctx.drawImage(frameSource, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      return true;
+    }
+    if (ROTATE_SINGLE_IMAGE_DISP_IDS.has(disp)) {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const deg = computeRotateSingleImageAngleDeg(item, now.getTime());
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((deg * Math.PI) / 180);
       ctx.drawImage(frameSource, -w / 2, -h / 2, w, h);
       ctx.restore();
       return true;
@@ -4751,6 +4997,22 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   function bindEvents() {
     wireLocalWatchDialogs();
 
+    if (dom.sidebarTabLocal) {
+      dom.sidebarTabLocal.addEventListener("click", () => {
+        void activateSidebarLocalEdit();
+      });
+    }
+    if (dom.sidebarTabTemplate) {
+      dom.sidebarTabTemplate.addEventListener("click", () => {
+        void activateSidebarTemplateBrowse();
+      });
+    }
+    if (dom.btnApplyTemplate) {
+      dom.btnApplyTemplate.addEventListener("click", () => {
+        void applyTemplateDraftToNamedLocalWatchface();
+      });
+    }
+
     if (dom.btnNewWatchface) {
       dom.btnNewWatchface.addEventListener("click", () => {
         void startNewBlankWatchface();
@@ -4909,6 +5171,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       syncWorkspaceBaseline();
     }
     refreshLocalWatchfaceListUi();
+    sidebarBrowseMode = "local";
+    refreshSidebarBrowseChrome();
 
     if (state.tickHandle) clearInterval(state.tickHandle);
     state.tickHandle = setInterval(() => renderWatchface(), PREVIEW_TICK_MS);

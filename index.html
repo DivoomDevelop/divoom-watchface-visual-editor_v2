@@ -36,28 +36,34 @@
     </div>
   </header>
 
-  <main class="layout">
+  <main class="layout" id="main-layout">
     <aside class="panel left-panel">
-      <section class="card">
-        <h2 id="sec-local-watch-title">本地表盘</h2>
-        <div class="btn-row">
-          <button id="btn-new-watchface" type="button"></button>
+      <section class="card sidebar-watch-scope">
+        <div class="sidebar-watch-tablist" role="tablist" aria-label="Watchface lists">
+          <button id="sidebar-tab-local" type="button" class="sidebar-watch-tab" role="tab" aria-selected="true" aria-controls="sidebar-panel-local"></button>
+          <button id="sidebar-tab-template" type="button" class="sidebar-watch-tab" role="tab" aria-selected="false" aria-controls="sidebar-panel-template"></button>
         </div>
-        <div id="local-watch-hint" class="hint"></div>
-        <ul id="local-watchface-list" class="template-list local-watchface-list"></ul>
-      </section>
 
-      <section class="card">
-        <h2 id="sec-template-title">模板列表</h2>
-        <div class="field-row">
-          <label id="lbl-template-category" for="select-template-category">模板分类</label>
-          <select id="select-template-category"></select>
+        <div id="sidebar-panel-local" class="sidebar-watch-panel" role="tabpanel">
+          <div class="btn-row">
+            <button id="btn-new-watchface" type="button"></button>
+          </div>
+          <div id="local-watch-hint" class="hint"></div>
+          <ul id="local-watchface-list" class="template-list local-watchface-list"></ul>
         </div>
-        <div class="btn-row">
-          <button id="btn-reload-templates" type="button">刷新模板列表</button>
+
+        <div id="sidebar-panel-template" class="sidebar-watch-panel" role="tabpanel" hidden>
+          <div class="field-row">
+            <label id="lbl-template-category" for="select-template-category">模板分类</label>
+            <select id="select-template-category"></select>
+          </div>
+          <div class="btn-row sidebar-template-actions">
+            <button id="btn-reload-templates" type="button">刷新模板列表</button>
+            <button id="btn-apply-template" type="button" class="btn-primary"></button>
+          </div>
+          <div id="template-hint" class="hint"></div>
+          <ul id="template-list" class="template-list template-list-with-thumb"></ul>
         </div>
-        <div id="template-hint" class="hint"></div>
-        <ul id="template-list" class="template-list"></ul>
       </section>
 
       <section class="card">
@@ -76,6 +82,7 @@
         <div><span id="lbl-current-clock">当前表盘：</span><span id="txt-clock-title">未加载</span></div>
         <div><span id="lbl-clock-id">ClockId:</span> <span id="txt-clock-id">-</span></div>
         <div><span id="lbl-item-count">元素数:</span> <span id="txt-item-count">0</span></div>
+        <div id="browse-template-toolbar-hint" class="browse-template-toolbar-hint" hidden></div>
       </div>
       <div id="preview-stage" class="preview-stage">
         <canvas id="watchface-canvas" width="800" height="1280"></canvas>
@@ -87,7 +94,7 @@
       </div>
     </section>
 
-    <aside class="panel right-panel">
+    <aside class="panel right-panel" id="right-editor-panel">
       <section class="card">
         <h2 id="sec-background-title">表盘底图</h2>
         <div class="field-row">

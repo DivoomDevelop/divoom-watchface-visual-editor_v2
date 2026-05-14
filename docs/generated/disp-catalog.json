@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-13T13:05:01.588Z",
+  "generatedAt": "2026-05-14T03:49:37.617Z",
   "sourceFile": "src/editor/app.js (DISP_NAME_MAP)",
   "summary": {
-    "count": 183
+    "count": 187
   },
   "rulesForModels": [
     "disp is the render/driver kind for an item (time slice, image slot, text, etc.).",
@@ -1654,6 +1654,42 @@
       "name": "DIAL_COMPONENT_END",
       "hints": {
         "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": false,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 348,
+      "name": "ROT_IMG_EFFECT_1",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": true,
+        "oftenUsesVectorFontForText": false,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 349,
+      "name": "ROT_IMG_EFFECT_2",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": true,
+        "oftenUsesVectorFontForText": false,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 350,
+      "name": "ROT_IMG_EFFECT_3",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": true,
+        "oftenUsesVectorFontForText": false,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 352,
+      "name": "ROT_IMG_EFFECT_4",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": true,
         "oftenUsesVectorFontForText": false,
         "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
       }
