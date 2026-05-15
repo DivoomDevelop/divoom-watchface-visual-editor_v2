@@ -17,7 +17,8 @@
     "prebuild": "npm run gen:ai-docs",
     "build": "vite build",
     "preview": "vite preview",
-    "gen:ai-docs": "node scripts/gen-ai-docs.mjs"
+    "gen:ai-docs": "node scripts/gen-ai-docs.mjs",
+    "lan:probe": "node scripts/lan-probe.mjs"
   },
   "devDependencies": {
     "http-proxy": "^1.18.1",

@@ -33,12 +33,16 @@
           <select id="select-lan-device"></select>
         </label>
         <button id="btn-refresh-lan-devices" type="button" class="btn-ghost btn-lan-device-refresh"></button>
+        <button id="btn-lan-copy-debug" type="button" class="btn-ghost btn-lan"></button>
+        <button id="btn-lan-create-on-device" type="button" class="btn-ghost btn-lan"></button>
         <button id="btn-lan-apply-config" type="button" class="btn-lan" disabled></button>
       </div>
       <label class="lang-switch" for="select-lang">
         <span id="lbl-lang">语言</span>
         <select id="select-lang"></select>
       </label>
+      <span id="admin-mode-badge" class="admin-mode-badge" hidden aria-live="polite"></span>
+      <button id="btn-about" type="button" class="btn-ghost btn-about"></button>
     </div>
   </header>
 
@@ -162,6 +166,38 @@
         <button type="submit" id="lan-create-submit" class="btn-primary"></button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="about-dialog" class="lan-dialog about-dialog">
+    <h3 id="about-title" class="lan-dialog-title"></h3>
+    <div
+      id="about-doubleclick-zone"
+      class="about-doubleclick-zone"
+      tabindex="0"
+      role="region"
+      aria-label="">
+      <p id="about-intro" class="lan-dialog-body"></p>
+      <p id="about-dblhint" class="hint about-dbl-hint"></p>
+    </div>
+    <p id="about-version-line" class="hint about-version-line"></p>
+    <div class="lan-dialog-actions">
+      <button type="button" id="about-admin-exit" class="btn-ghost" hidden></button>
+      <button type="button" id="about-close" class="btn-primary"></button>
+    </div>
+  </dialog>
+
+  <dialog id="admin-password-dialog" class="lan-dialog admin-password-dialog">
+    <h3 id="admin-password-title" class="lan-dialog-title"></h3>
+    <p id="admin-password-caption" class="hint"></p>
+    <label class="lan-dialog-field" id="admin-password-field-row">
+      <span id="admin-password-label-text"></span>
+      <input id="admin-password-input" type="password" autocomplete="off" maxlength="128" />
+    </label>
+    <p id="admin-password-status" class="hint admin-password-status" aria-live="polite"></p>
+    <div class="lan-dialog-actions">
+      <button type="button" id="admin-password-cancel" class="btn-ghost"></button>
+      <button type="button" id="admin-password-submit" class="btn-primary"></button>
+    </div>
   </dialog>
 
   <template id="tpl-editor-field">

@@ -145,6 +145,45 @@ body.page-root {
   gap: 8px;
 }
 
+.admin-mode-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 120, 80, 0.22);
+  color: #ffb89a;
+  border: 1px solid rgba(255, 120, 80, 0.4);
+  white-space: nowrap;
+}
+
+.btn-about {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.about-doubleclick-zone {
+  margin: 0 0 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  cursor: default;
+  outline: none;
+}
+
+.about-doubleclick-zone:focus-visible {
+  box-shadow: 0 0 0 2px rgba(106, 161, 255, 0.45);
+}
+
+.about-dbl-hint {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.about-version-line {
+  margin-bottom: 10px;
+}
+
 .lang-switch {
   display: inline-flex;
   align-items: center;

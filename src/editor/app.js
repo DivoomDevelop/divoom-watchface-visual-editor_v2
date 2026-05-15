@@ -15,7 +15,8 @@ import {
   getWatchface,
   setLastActiveId,
   getLastActiveId,
-  newWatchfaceId
+  newWatchfaceId,
+  BUNDLED_STARTER_WATCHFACE_ID
 } from "./localWatchfacesStore.js";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
@@ -23,8 +24,20 @@ const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
 
 const APP_BUILD_TAG = "2026-05-11 12:00";
 
+/** 本地「管理员模式」开关（仅前端展示/后续功能入口；勿作安全边界）。 */
+const ADMIN_UNLOCK_STORAGE_KEY = "divoom_editor_admin_unlocked_v1";
+/** 与产品约定一致；仅用于本机浏览器内验证。 */
+const ADMIN_GATE_PASSWORD = "Divoom~!@#";
+
+/** Pack ClockId for `public/defaults/starter-watchface.json` (loads `template/29` & `template/15` when present). */
+const BUNDLED_STARTER_TEMPLATE_PACK_FALLBACK_ID = 342;
 const LAN_DEVICE_HARDWARE_WHITELIST = new Set([500, 510, 511, 512]);
 const LAN_DEVICE_HTTP_PORT = 9000;
+/** 与固件 /create_local_clock、/patch_local_clock 第二段约定一致（参见 LAN Quick Reference：tarball 内 clock_bg.*）。 */
+const LAN_MULTIPART_DIAL_FILENAME = "clock_bg.jpg";
+/** 设为 1 或在地址栏加 ?lanDebug=1 后刷新：日志区输出 multipart JSON 片段等详细信息。 */
+const LAN_DEBUG_STORAGE_VERBOSE = "divoom_lan_verbose";
+const LAN_DEBUG_HISTORY_MAX = 12;
 
   const DISP_NAME_MAP = Object.freeze({
     1: "SECOND",
@@ -1969,6 +1982,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     lblLanDevice: byId("lbl-lan-device"),
     selectLanDevice: byId("select-lan-device"),
     btnRefreshLanDevices: byId("btn-refresh-lan-devices"),
+    btnLanCopyDebug: byId("btn-lan-copy-debug"),
     mainLayout: byId("main-layout"),
     rightEditorPanel: byId("right-editor-panel"),
     appModeStrip: byId("app-mode-strip"),
@@ -2006,6 +2020,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     txtBgSourcePath: byId("txt-bg-source-path"),
     btnClearBg: byId("btn-clear-bg"),
     btnLanApplyWatchfaceConfig: byId("btn-lan-apply-config"),
+    btnLanCreateOnDevice: byId("btn-lan-create-on-device"),
     lanCreateDialog: byId("lan-create-dialog"),
     lanCreateForm: byId("lan-create-form"),
     lanCreateName: byId("lan-create-name"),
@@ -2044,7 +2059,26 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     fileProtocolBanner: byId("file-protocol-banner"),
     fileBannerTitle: byId("file-banner-title"),
     fileBannerBody: byId("file-banner-body"),
-    btnDismissFileBanner: byId("btn-dismiss-file-banner")
+    btnDismissFileBanner: byId("btn-dismiss-file-banner"),
+    btnAbout: byId("btn-about"),
+    aboutDialog: byId("about-dialog"),
+    aboutTitle: byId("about-title"),
+    aboutIntro: byId("about-intro"),
+    aboutDblhint: byId("about-dblhint"),
+    aboutVersionLine: byId("about-version-line"),
+    aboutDoubleclickZone: byId("about-doubleclick-zone"),
+    aboutClose: byId("about-close"),
+    aboutAdminExit: byId("about-admin-exit"),
+    adminModeBadge: byId("admin-mode-badge"),
+    adminPasswordDialog: byId("admin-password-dialog"),
+    adminPasswordTitle: byId("admin-password-title"),
+    adminPasswordCaption: byId("admin-password-caption"),
+    adminPasswordFieldRow: byId("admin-password-field-row"),
+    adminPasswordLabelText: byId("admin-password-label-text"),
+    adminPasswordInput: byId("admin-password-input"),
+    adminPasswordStatus: byId("admin-password-status"),
+    adminPasswordCancel: byId("admin-password-cancel"),
+    adminPasswordSubmit: byId("admin-password-submit")
   };
 
   /** 模板列表依赖的节点：避免极少数环境下脚本早于节点插入导致 byId 为 null。 */
@@ -2314,6 +2348,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     { key: "y", type: "number", labelKey: "editor.y" },
     { key: "w", type: "number", labelKey: "editor.w" },
     { key: "h", type: "number", labelKey: "editor.h" },
+    {
+      key: "hier",
+      type: "hier-tier",
+      labelKey: "editor.hierTier"
+    },
     { key: "alig", type: "align-select", labelKey: "editor.align" },
     { key: "sep", type: "number", labelKey: "editor.sep" },
     { key: "transp", type: "number", labelKey: "editor.transp" },
@@ -2337,6 +2376,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     "y",
     "w",
     "h",
+    "hier",
     "alig"
   ]);
 
@@ -2347,15 +2387,149 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
   /** 「我的设计」且 ClockId=0 时不展示 “ClockId: 0”，改为未上传提示（模板浏览仍显示 ID）。 */
   function refreshToolbarClockIdUi() {
-    if (!dom.txtClockId || !dom.lblClockId) return;
-    const cid = toNum(state.config?.ClockId, 0);
-    if (sidebarBrowseMode === "local" && cid === 0) {
-      dom.lblClockId.hidden = true;
-      dom.txtClockId.textContent = t("ui.toolbar.clockIdNotUploaded");
-    } else {
-      dom.lblClockId.hidden = false;
-      dom.lblClockId.textContent = t("ui.toolbar.clockId");
-      dom.txtClockId.textContent = String(cid);
+    if (dom.txtClockId && dom.lblClockId) {
+      const cid = toNum(state.config?.ClockId, 0);
+      if (sidebarBrowseMode === "local" && cid === 0) {
+        dom.lblClockId.hidden = true;
+        dom.txtClockId.textContent = t("ui.toolbar.clockIdNotUploaded");
+      } else {
+        dom.lblClockId.hidden = false;
+        dom.lblClockId.textContent = t("ui.toolbar.clockId");
+        dom.txtClockId.textContent = String(cid);
+      }
+    }
+    refreshLanActionButtons();
+  }
+
+  function readAdminUnlockFromStorage() {
+    try {
+      return localStorage.getItem(ADMIN_UNLOCK_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function persistAdminUnlock(enabled) {
+    try {
+      if (enabled) localStorage.setItem(ADMIN_UNLOCK_STORAGE_KEY, "1");
+      else localStorage.removeItem(ADMIN_UNLOCK_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function configureAdminGateDialog(openUnlockedVariant) {
+    if (!dom.adminPasswordDialog) return;
+    const unlocked = Boolean(openUnlockedVariant);
+    if (dom.adminPasswordTitle)
+      setNodeText(dom.adminPasswordTitle, unlocked ? t("about.adminAlreadyTitle") : t("about.adminPwdTitle"));
+    if (dom.adminPasswordCaption)
+      setNodeText(
+        dom.adminPasswordCaption,
+        unlocked ? t("about.adminAlreadyBody") : t("about.adminPwdCaption")
+      );
+    if (dom.adminPasswordLabelText) setNodeText(dom.adminPasswordLabelText, t("about.adminPwdLabel"));
+    if (dom.adminPasswordFieldRow) dom.adminPasswordFieldRow.hidden = unlocked;
+    if (dom.adminPasswordInput) {
+      dom.adminPasswordInput.value = "";
+      dom.adminPasswordInput.disabled = unlocked;
+      dom.adminPasswordInput.required = !unlocked;
+    }
+    if (dom.adminPasswordStatus) dom.adminPasswordStatus.textContent = "";
+    if (dom.adminPasswordCancel) setNodeText(dom.adminPasswordCancel, t("lan.dialog.cancel"));
+    if (dom.adminPasswordSubmit)
+      setNodeText(dom.adminPasswordSubmit, unlocked ? t("about.adminPwdOk") : t("about.adminPwdSubmit"));
+  }
+
+  function syncAdminUnlockUi() {
+    const on = readAdminUnlockFromStorage();
+    document.documentElement.classList.toggle("editor-admin-mode", on);
+    if (dom.adminModeBadge) {
+      dom.adminModeBadge.hidden = !on;
+      if (on) setNodeText(dom.adminModeBadge, t("about.adminBadge"));
+    }
+    if (dom.aboutAdminExit) {
+      dom.aboutAdminExit.hidden = !on;
+      setNodeText(dom.aboutAdminExit, t("about.adminExit"));
+    }
+    if (!dom.adminPasswordDialog?.open)
+      configureAdminGateDialog(readAdminUnlockFromStorage());
+  }
+
+  function refreshAboutDialogsI18n() {
+    if (dom.aboutTitle) setNodeText(dom.aboutTitle, t("about.title"));
+    if (dom.aboutIntro) setNodeText(dom.aboutIntro, t("about.intro"));
+    if (dom.aboutDblhint) setNodeText(dom.aboutDblhint, t("about.dblhint"));
+    if (dom.aboutVersionLine) setNodeText(dom.aboutVersionLine, t("about.versionLine", { tag: APP_BUILD_TAG }));
+    if (dom.aboutDoubleclickZone)
+      dom.aboutDoubleclickZone.setAttribute("aria-label", t("about.dblAria"));
+    if (dom.btnAbout) setNodeText(dom.btnAbout, t("about.open"));
+    if (dom.aboutClose) setNodeText(dom.aboutClose, t("about.close"));
+    syncAdminUnlockUi();
+    configureAdminGateDialog(readAdminUnlockFromStorage());
+  }
+
+  function wireAboutAdminUi() {
+    if (dom.btnAbout && dom.aboutDialog?.showModal) {
+      dom.btnAbout.addEventListener("click", () => {
+        refreshAboutDialogsI18n();
+        dom.aboutDialog.showModal();
+      });
+    }
+    if (dom.aboutClose && dom.aboutDialog) dom.aboutClose.addEventListener("click", () => dom.aboutDialog.close());
+    if (dom.aboutAdminExit) {
+      dom.aboutAdminExit.addEventListener("click", () => {
+        persistAdminUnlock(false);
+        syncAdminUnlockUi();
+        fontStore.log(t("about.adminLoggedOut"));
+      });
+    }
+    const openGate = () => {
+      configureAdminGateDialog(readAdminUnlockFromStorage());
+      if (dom.adminPasswordDialog?.showModal) dom.adminPasswordDialog.showModal();
+    };
+    if (dom.aboutDoubleclickZone)
+      dom.aboutDoubleclickZone.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        openGate();
+      });
+
+    const closeGate = () => {
+      dom.adminPasswordDialog?.close?.();
+      if (dom.adminPasswordInput) dom.adminPasswordInput.value = "";
+      if (dom.adminPasswordStatus) dom.adminPasswordStatus.textContent = "";
+    };
+
+    if (dom.adminPasswordCancel) dom.adminPasswordCancel.addEventListener("click", closeGate);
+
+    if (dom.adminPasswordSubmit && dom.adminPasswordDialog) {
+      dom.adminPasswordSubmit.addEventListener("click", () => {
+        if (readAdminUnlockFromStorage()) {
+          closeGate();
+          return;
+        }
+        const raw = dom.adminPasswordInput ? String(dom.adminPasswordInput.value || "") : "";
+        if (raw === ADMIN_GATE_PASSWORD) {
+          persistAdminUnlock(true);
+          syncAdminUnlockUi();
+          if (dom.adminPasswordStatus)
+            dom.adminPasswordStatus.textContent = t("about.adminPwdSuccess");
+          fontStore.log(t("about.adminUnlocked"));
+          window.setTimeout(() => closeGate(), 450);
+          return;
+        }
+        if (dom.adminPasswordStatus)
+          dom.adminPasswordStatus.textContent = t("about.adminPwdWrong");
+      });
+    }
+
+    if (dom.adminPasswordInput && dom.adminPasswordSubmit) {
+      dom.adminPasswordInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          dom.adminPasswordSubmit.click();
+        }
+      });
     }
   }
 
@@ -2367,6 +2541,10 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     setNodeText(dom.lblLang, t("ui.language"));
     if (dom.lblLanDevice) setNodeText(dom.lblLanDevice, t("ui.label.lanDevice"));
     if (dom.btnRefreshLanDevices) setNodeText(dom.btnRefreshLanDevices, t("ui.btn.refreshLanDevices"));
+    if (dom.btnLanCopyDebug) {
+      setNodeText(dom.btnLanCopyDebug, t("ui.btn.lanCopyDebug"));
+      dom.btnLanCopyDebug.title = t("ui.btn.lanCopyDebugTitle");
+    }
     if (dom.selectLanDevice?.options?.length && dom.selectLanDevice.options[0].value === "") {
       dom.selectLanDevice.options[0].textContent = t("lan.device.placeholder");
     }
@@ -2390,6 +2568,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     setNodeText(dom.btnClearBg, t("ui.btn.clearBg"));
     if (dom.btnLanApplyWatchfaceConfig)
       setNodeText(dom.btnLanApplyWatchfaceConfig, t("ui.btn.lanApplyWatchfaceConfig"));
+    if (dom.btnLanCreateOnDevice) setNodeText(dom.btnLanCreateOnDevice, t("ui.btn.lanCreate"));
     if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.title"));
     if (dom.lanCreateLabelText) setNodeText(dom.lanCreateLabelText, t("lan.dialog.nameLabel"));
     if (dom.lanCreateCancel) setNodeText(dom.lanCreateCancel, t("lan.dialog.cancel"));
@@ -2411,6 +2590,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     setNodeText(dom.fileBannerBody, t("ui.fileProtocol.body"));
     setNodeText(dom.btnDismissFileBanner, t("ui.fileProtocol.dismiss"));
 
+    refreshAboutDialogsI18n();
     if (!state.config?.ItemList?.length) setNodeText(dom.txtClockTitle, t("ui.default.clockNotLoaded"));
     else setNodeText(dom.txtClockTitle, getClockDisplayName(state.config));
     refreshToolbarClockIdUi();
@@ -2453,14 +2633,14 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return {
       ...DEFAULT_ITEM,
       font: fontId,
-      hier: index,
+      hier: 0,
       item_id: `item_${index + 1}`
     };
   }
 
   function normalizeItem(raw, index) {
     const item = { ...createDefaultItem(index), ...(raw || {}) };
-    if (!item.item_id) item.item_id = `item_${index + 1}`;
+    if (item.item_id === undefined || item.item_id === null) item.item_id = `item_${index + 1}`;
     item.color_1 = ensureColorHex(item.color_1, "#ffffff");
     item.color_2 = ensureColorHex(item.color_2, "#000000");
     item.disp = toNum(item.disp ?? item.type, item.disp ?? 4);
@@ -2473,12 +2653,22 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     item.alig = toNum(item.alig ?? item.align, 0);
     item.sep = toNum(item.sep, 0);
     item.angle = toNum(item.angle, 0);
-    item.hier = toNum(item.hier, index);
+    item.hier = toNum(item.hier, 0);
     item.transp = toNum(item.transp, 100);
     item.animation = toNum(item.animation, 0);
     item.image_id = toNum(item.image_id, 0);
     item.image_addr = String(item.image_addr || "");
     return item;
+  }
+
+  /**
+   * 设备侧 ItemIdList 与 ItemList[].item_id 一一对应；`item_id` 允许为 ""（常见模板），
+   * 不可使用 `x || fallback` 把空串误判为缺失。
+   */
+  function itemIdListEntryForLan(it, idx) {
+    const id = it?.item_id;
+    if (id === undefined || id === null) return `item_${idx + 1}`;
+    return String(id);
   }
 
   function normalizeConfig(raw) {
@@ -2495,7 +2685,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     }
 
     const itemList = (Array.isArray(base.ItemList) ? base.ItemList : []).map((it, idx) => normalizeItem(it, idx));
-    const itemIdList = itemList.map((it, idx) => String(it.item_id || `item_${idx + 1}`));
+    const itemIdList = itemList.map((it, idx) => itemIdListEntryForLan(it, idx));
     const tplAsset = toNum(base.TemplateAssetClockId, 0);
     const merged = {
       ...base,
@@ -2518,7 +2708,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function syncItemIdList() {
-    state.config.ItemIdList = state.config.ItemList.map((it, idx) => String(it.item_id || `item_${idx + 1}`));
+    state.config.ItemIdList = state.config.ItemList.map((it, idx) => itemIdListEntryForLan(it, idx));
   }
 
   /** UI 为简体中文时读取中文名；其余语言（含繁体、英语等）模板/表盘名称统一以英文为主。 */
@@ -2773,14 +2963,17 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function refreshLanActionButtons() {
-    const btn = dom.btnLanApplyWatchfaceConfig;
-    if (!btn) return;
+    const applyBtn = dom.btnLanApplyWatchfaceConfig;
+    const createBtn = dom.btnLanCreateOnDevice;
     if (sidebarBrowseMode === "template") {
-      btn.disabled = true;
+      if (applyBtn) applyBtn.disabled = true;
+      if (createBtn) createBtn.disabled = true;
       return;
     }
+    const hasClockId = toNum(state.config?.ClockId, 0) > 0;
     const dirty = getLanDirtySnapshot() !== lanBaselineSignature;
-    btn.disabled = !dirty;
+    if (applyBtn) applyBtn.disabled = !hasClockId || !dirty;
+    if (createBtn) createBtn.disabled = hasClockId;
   }
 
   function refreshSidebarBrowseChrome() {
@@ -2816,7 +3009,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         !templateTabActive || !Number.isFinite(idSel) || templateState.loading;
     }
 
-    refreshLanActionButtons();
     refreshToolbarClockIdUi();
   }
 
@@ -2937,6 +3129,58 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     } catch {
       return null;
     }
+  }
+
+  async function loadBundledThumbDataUrl(packClockId) {
+    try {
+      const id = toNum(packClockId, 0);
+      if (id <= 0) return "";
+      const thumbUrl = withBase(`template/33/${id + 1}.png`);
+      const img = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.decoding = "async";
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error("thumb"));
+        im.src = thumbUrl;
+      });
+      return (await imageToDataUrlForPersist(img)) || "";
+    } catch {
+      return "";
+    }
+  }
+
+  /** When the user has no saved 「我的设计」, install the shipped preset once and make it active. */
+  async function ensureBundledStarterWatchfaceIfLibraryEmpty() {
+    if (listWatchfaces().length > 0) return;
+    let raw;
+    try {
+      const res = await fetch(withBase("defaults/starter-watchface.json"), { cache: "force-cache" });
+      if (!res.ok) return;
+      raw = await res.json();
+    } catch {
+      return;
+    }
+    const packClock = toNum(raw?.ClockId, BUNDLED_STARTER_TEMPLATE_PACK_FALLBACK_ID);
+    const nmCn = String(raw?.NameCn || "").trim();
+    const nmEn = String(raw?.NameEn || "").trim();
+    const rowName = nmCn || nmEn || "立体方块2";
+    const bgData = await loadBundledThumbDataUrl(packClock);
+    upsert({
+      id: BUNDLED_STARTER_WATCHFACE_ID,
+      name: rowName,
+      updatedAt: Date.now(),
+      config: raw,
+      backgroundDataUrl: bgData,
+      backgroundName: "",
+      backgroundSourceLabel: "",
+      width: 800,
+      height: 1280,
+      zoom: 55,
+      previewOverrides: {},
+      templateActiveClockId: null
+    });
+    setLastActiveId(BUNDLED_STARTER_WATCHFACE_ID);
+    fontStore.log(t("log.bundledStarterSeeded", { name: rowName }));
   }
 
   async function flushPersistActiveWorkspace() {
@@ -3432,18 +3676,33 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return payload;
   }
 
-  function buildCreateClockMetadata(clockName) {
-    syncItemIdList();
-    const raw = JSON.parse(JSON.stringify(state.config));
-    raw.ClockName = clockName;
-    raw.NameCn = clockName;
-    raw.NameEn = clockName;
-    raw.ClockId = 0;
-    delete raw.TemplateAssetClockId;
-    return raw;
+  /** 与 mcp-divoom-lan / guide-quick-reference：`Device/PatchLocalClockInfo` 首段 JSON 可含 `DialAssets`，与 `/create_local_clock` 语义一致。 */
+  function buildPatchMultipartMetadata() {
+    return {
+      Command: "Device/PatchLocalClockInfo",
+      ReturnCode: 0,
+      DialAssets: "image",
+      ...buildPatchPayload()
+    };
   }
 
-  function renderDialBackgroundJpegBlob() {
+  function buildCreateClockMetadata(clockName) {
+    syncItemIdList();
+    const name = String(clockName || "").trim();
+    return {
+      Command: "Device/CreateLocalClock",
+      ReturnCode: 0,
+      DialAssets: "image",
+      ClockName: name,
+      NameCn: name,
+      NameEn: name,
+      ClockId: 0,
+      ItemList: state.config.ItemList.map((item) => ({ ...item })),
+      ItemIdList: [...state.config.ItemIdList]
+    };
+  }
+
+  function renderDialBackgroundJpegBlobAtQuality(quality) {
     const w = 800;
     const h = 1280;
     return new Promise((resolve, reject) => {
@@ -3461,35 +3720,260 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       c.toBlob((b) => {
         if (b) resolve(b);
         else reject(new Error("JPEG blob failed"));
-      }, "image/jpeg", 0.88);
+      }, "image/jpeg", quality);
     });
   }
 
-  async function divoomCreateMultipart(metadata, imageBlob) {
-    const fd = new FormData();
-    fd.append("json", new Blob([JSON.stringify(metadata)], { type: "application/json" }), "clock.json");
-    fd.append(String(Date.now()), imageBlob, "dial.jpg");
-    const url = resolveDivoomUrl("/create_local_clock");
-    let res;
-    try {
-      res = await fetch(url, buildLanFetchOptions({ method: "POST", body: fd }));
-    } catch (e) {
-      throw new Error(t("lan.err.network", { message: errorToText(e) }));
+  function renderDialBackgroundJpegBlob() {
+    return renderDialBackgroundJpegBlobAtQuality(0.88);
+  }
+
+  /** 固件常见限制约 512000 字节（见 mcp-divoom-lan 文档）；超限时逐步降低 JPEG 质量。 */
+  async function renderDialBackgroundJpegBlobForLanUpload() {
+    const maxBytes = 512000;
+    let quality = 0.88;
+    for (let i = 0; i < 12; i++) {
+      const blob = await renderDialBackgroundJpegBlobAtQuality(quality);
+      if (blob.size <= maxBytes) return blob;
+      quality = Math.max(0.32, quality * 0.86);
     }
-    const text = await res.text();
-    let data = null;
+    return renderDialBackgroundJpegBlobAtQuality(0.3);
+  }
+
+  function assertNonEmptyDialImageBlob(blob) {
+    if (!blob || blob.size < 256) {
+      throw new Error(t("lan.err.invalidDialImage"));
+    }
+  }
+
+  /** Divoom Frame 等设备在 LAN 上常对 `/create_local_clock` 直接返回此笼统错误（实测 multipart 与 patch 无关）。 */
+  function isLikelyCreateLocalClockLanRejection(msg) {
+    const s = String(msg || "");
+    return /missing file part|invalid image\/bundle|filename in multipart|size mismatch|empty ItemList stage/i.test(s);
+  }
+
+  function formatLanCreateFailureAlert(msg) {
+    const raw = String(msg || "").trim();
+    if (!raw) return t("lan.err.returnCode", { code: "?" });
+    if (isLikelyCreateLocalClockLanRejection(raw)) return t("lan.err.createLikelyUnsupported", { message: raw });
+    return raw;
+  }
+
+  function resolveLanClockItemList(data) {
+    if (!data || typeof data !== "object") return [];
+    if (Array.isArray(data.ItemList)) return data.ItemList;
+    if (Array.isArray(data.ReturnData?.ItemList)) return data.ReturnData.ItemList;
+    if (Array.isArray(data.ReturnData?.DeviceClock?.ItemList)) return data.ReturnData.DeviceClock.ItemList;
+    return [];
+  }
+
+  /**
+   * 与 MCP `watchface_patch_local` 一致：下发前先读 `GetLocalClockInfo`，当前表盘 ItemList 为空则禁止 PATCH（避免在非可编辑上下文误写）。
+   */
+  async function lanPrecheckEditableClock(patchPayload) {
+    const clockId = toNum(patchPayload.ClockId, 0);
+    const prePayload = clockId > 0 ? { ClockId: clockId } : { UseCurrentDisplayClock: true };
+    const data = await divoomJson("Device/GetLocalClockInfo", prePayload);
+    const items = resolveLanClockItemList(data);
+    if (!items.length) {
+      throw new Error(t("lan.err.precheckEmptyItemList"));
+    }
+  }
+
+  let lanDebugHistory = [];
+
+  function isLanVerboseDebug() {
     try {
-      data = JSON.parse(text);
+      if (localStorage.getItem(LAN_DEBUG_STORAGE_VERBOSE) === "1") return true;
     } catch {
       /* ignore */
     }
+    return typeof location !== "undefined" && /[?&]lanDebug=1(?:&|$)/.test(location.search);
+  }
+
+  function pushLanDebugEntry(entry) {
+    lanDebugHistory.push(entry);
+    if (lanDebugHistory.length > LAN_DEBUG_HISTORY_MAX) lanDebugHistory.shift();
+    try {
+      window.__DIVOOM_LAN_DEBUG__ = {
+        exportedAt: new Date().toISOString(),
+        build: APP_BUILD_TAG,
+        history: lanDebugHistory.slice()
+      };
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** 失败时自动排查：控制台 + 底部日志；剪贴板在仍处用户手势链内时尽量写入最近一条 JSON（无需再手点「LAN 诊断」）。 */
+  function logLanAutoDebug(entry, tag) {
+    const label = String(tag || "fail");
+    try {
+      console.warn(`[Divoom LAN auto-debug:${label}]`, entry);
+    } catch {
+      /* ignore */
+    }
+    try {
+      const tail =
+        (entry.ReturnMessage != null ? ` | ${String(entry.ReturnMessage).slice(0, 280)}` : "") +
+        (entry.networkError ? ` | ${entry.networkError}` : "");
+      fontStore.log(
+        `[LAN auto:${label}] ${entry.pathSuffix} ${entry.command} | JSON ${entry.jsonUtf8Bytes}B img ${entry.imageBytes}B` +
+          (entry.httpStatus != null ? ` | HTTP ${entry.httpStatus}` : "") +
+          (entry.ReturnCode != null ? ` | RC ${entry.ReturnCode}` : "") +
+          tail
+      );
+    } catch {
+      /* ignore */
+    }
+    try {
+      const clip = JSON.stringify({ autoDebugTag: label, ...entry }, null, 2);
+      void navigator.clipboard?.writeText?.(clip);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function buildLanDiagnosticsText() {
+    const lines = [
+      "=== Divoom watchface editor — LAN diagnostics ===",
+      `build: ${APP_BUILD_TAG}`,
+      `page: ${typeof location !== "undefined" ? location.href : ""}`,
+      `verbose: ${isLanVerboseDebug() ? "on" : `off (set localStorage '${LAN_DEBUG_STORAGE_VERBOSE}'='1' or add ?lanDebug=1, reload)`}`,
+      `editor ClockId: ${toNum(state.config?.ClockId, 0)} | ItemList len: ${state.config?.ItemList?.length ?? 0}`,
+      `LAN device select value: ${dom.selectLanDevice?.value || ""}`,
+      `records: ${lanDebugHistory.length}`,
+      ""
+    ];
+    for (let i = 0; i < lanDebugHistory.length; i++) {
+      lines.push(`--- record ${i + 1} @ ${lanDebugHistory[i].ts} ---`);
+      lines.push(JSON.stringify(lanDebugHistory[i], null, 2));
+      lines.push("");
+    }
+    return lines.join("\n");
+  }
+
+  async function copyLanDiagnosticsToClipboard() {
+    const text = buildLanDiagnosticsText();
+    try {
+      await navigator.clipboard.writeText(text);
+      fontStore.log(t("lan.debug.copiedLog"));
+      alert(t("lan.debug.copied"));
+    } catch {
+      console.warn("[Divoom LAN diagnostics]\n", text);
+      fontStore.log(t("lan.debug.copyFailedLog"));
+      alert(t("lan.debug.copyFailed"));
+    }
+  }
+
+  const LAN_MULTIPART_ENDPOINT = Object.freeze({
+    create: "/create_local_clock",
+    patch: "/patch_local_clock"
+  });
+
+  const LAN_MULTIPART_COMMAND_BY_PATH = Object.freeze({
+    [LAN_MULTIPART_ENDPOINT.create]: "Device/CreateLocalClock",
+    [LAN_MULTIPART_ENDPOINT.patch]: "Device/PatchLocalClockInfo"
+  });
+
+  async function postLanMultipartToDevice(pathSuffix, metadata, imageBlob) {
+    const expectedCommand = LAN_MULTIPART_COMMAND_BY_PATH[pathSuffix];
+    if (!expectedCommand) {
+      throw new Error(t("lan.err.multipartUnknownPath", { path: String(pathSuffix) }));
+    }
+    if (!metadata || metadata.Command !== expectedCommand) {
+      throw new Error(
+        t("lan.err.multipartCommandMismatch", {
+          path: pathSuffix,
+          expected: expectedCommand,
+          actual: metadata?.Command != null ? String(metadata.Command) : "(none)"
+        })
+      );
+    }
+    const url = resolveDivoomUrl(pathSuffix);
+    const jsonStr = JSON.stringify(metadata);
+    const enc = new TextEncoder();
+    const entry = {
+      ts: new Date().toISOString(),
+      phase: "multipart",
+      pathSuffix,
+      fetchUrl: url,
+      pageHref: typeof location !== "undefined" ? location.href : "",
+      viteDev: Boolean(import.meta.env?.DEV),
+      useProxyTunnel: shouldUseLanProxyTunnel(),
+      lanTargetBase: getLanTargetBase() || "",
+      editorClockId: toNum(state.config?.ClockId, 0),
+      command: metadata.Command,
+      dialAssets: metadata.DialAssets,
+      clockName: metadata.ClockName,
+      payloadClockId: metadata.ClockId,
+      useCurrentDisplayClock: metadata.UseCurrentDisplayClock === true,
+      itemListLen: Array.isArray(metadata.ItemList) ? metadata.ItemList.length : 0,
+      itemIdListLen: Array.isArray(metadata.ItemIdList) ? metadata.ItemIdList.length : 0,
+      itemIdListHead: Array.isArray(metadata.ItemIdList) ? metadata.ItemIdList.slice(0, 48) : [],
+      jsonUtf8Bytes: enc.encode(jsonStr).length,
+      imageFileName: LAN_MULTIPART_DIAL_FILENAME,
+      imageBytes: imageBlob?.size ?? 0,
+      imageMime: imageBlob?.type || ""
+    };
+    fontStore.log(t("lan.log.multipart", { path: pathSuffix, command: metadata.Command }));
+    if (isLanVerboseDebug()) {
+      fontStore.log(
+        `[LAN verbose] ${pathSuffix} JSON ${entry.jsonUtf8Bytes} B | image ${entry.imageBytes} B\n${jsonStr.slice(0, Math.min(600, jsonStr.length))}${jsonStr.length > 600 ? "…" : ""}`
+      );
+    }
+    const fd = new FormData();
+    fd.append("json", new Blob([jsonStr], { type: "application/json" }), "cmd.json");
+    fd.append(String(Date.now()), imageBlob, LAN_MULTIPART_DIAL_FILENAME);
+    let res;
+    let text = "";
+    try {
+      res = await fetch(url, buildLanFetchOptions({ method: "POST", body: fd }));
+      text = await res.text();
+    } catch (e) {
+      entry.networkError = errorToText(e);
+      pushLanDebugEntry(entry);
+      logLanAutoDebug(entry, "network");
+      throw new Error(t("lan.err.network", { message: entry.networkError }));
+    }
+    entry.httpStatus = res.status;
+    entry.responseBytes = text.length;
+    entry.responseHead = text.slice(0, 1500);
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch (pe) {
+      entry.responseJsonError = errorToText(pe);
+    }
+    if (data && typeof data === "object") {
+      entry.deviceEchoCommand = data.Command;
+      entry.ReturnCode = data.ReturnCode;
+      entry.ReturnMessage = data.ReturnMessage;
+      entry.DeviceType = data.DeviceType;
+    }
+    pushLanDebugEntry(entry);
+    if (isLanVerboseDebug()) {
+      fontStore.log(
+        `[LAN verbose] HTTP ${res.status} | echo.Command=${entry.deviceEchoCommand ?? "?"} ReturnCode=${entry.ReturnCode ?? "?"}`
+      );
+    }
     if (!res.ok) {
+      logLanAutoDebug(entry, "http");
       throw new Error(t("lan.err.http", { status: res.status, text: text.slice(0, 240) }));
     }
     if (data && data.ReturnCode !== undefined && Number(data.ReturnCode) !== 0) {
+      logLanAutoDebug(entry, "device");
       throw new Error(String(data.ReturnMessage || t("lan.err.returnCode", { code: data.ReturnCode })));
     }
     return data;
+  }
+
+  async function divoomCreateMultipart(metadata, imageBlob) {
+    return postLanMultipartToDevice(LAN_MULTIPART_ENDPOINT.create, metadata, imageBlob);
+  }
+
+  async function divoomPatchLocalClockMultipart(metadata, imageBlob) {
+    return postLanMultipartToDevice(LAN_MULTIPART_ENDPOINT.patch, metadata, imageBlob);
   }
 
   function extractLanResponseClockId(data) {
@@ -3526,6 +4010,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function openLanCreateNameDialogForDeviceCreate() {
+    if (toNum(state.config.ClockId, 0) > 0) return;
     if (!dom.lanCreateDialog?.showModal) {
       alert(t("lan.dialog.missing"));
       return;
@@ -3539,32 +4024,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   async function onLanApplyWatchfaceConfigClick() {
-    if (!state.config.ItemList.length) {
-      alert(t("lan.err.emptyItemList"));
-      return;
-    }
-    const clockId = toNum(state.config.ClockId, 0);
-    if (clockId > 0) {
-      const btn = dom.btnLanApplyWatchfaceConfig;
-      if (btn) btn.disabled = true;
-      try {
-        fontStore.log(t("lan.busy"));
-        await divoomJson("Device/PatchLocalClockInfo", buildPatchPayload());
-        fontStore.log(t("lan.success.patch"));
-        alert(t("lan.success.patch"));
-        captureLanBaseline();
-      } catch (e) {
-        alert(errorToText(e));
-        refreshLanActionButtons();
-      } finally {
-        refreshLanActionButtons();
-      }
-      return;
-    }
-    openLanCreateNameDialogForDeviceCreate();
-  }
-
-  async function lanSubmitDeviceCreateWithName(name) {
+    if (toNum(state.config.ClockId, 0) <= 0) return;
     if (!state.config.ItemList.length) {
       alert(t("lan.err.emptyItemList"));
       return;
@@ -3573,8 +4033,36 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     if (btn) btn.disabled = true;
     try {
       fontStore.log(t("lan.busy"));
+      const patchBody = buildPatchPayload();
+      await lanPrecheckEditableClock(patchBody);
+      const meta = buildPatchMultipartMetadata();
+      const blob = await renderDialBackgroundJpegBlobForLanUpload();
+      assertNonEmptyDialImageBlob(blob);
+      await divoomPatchLocalClockMultipart(meta, blob);
+      fontStore.log(t("lan.success.patch"));
+      alert(t("lan.success.patch"));
+      captureLanBaseline();
+    } catch (e) {
+      alert(errorToText(e));
+      refreshLanActionButtons();
+    } finally {
+      refreshLanActionButtons();
+    }
+  }
+
+  async function lanSubmitDeviceCreateWithName(name) {
+    if (toNum(state.config.ClockId, 0) > 0) return;
+    if (!state.config.ItemList.length) {
+      alert(t("lan.err.emptyItemList"));
+      return;
+    }
+    const createBtn = dom.btnLanCreateOnDevice;
+    if (createBtn) createBtn.disabled = true;
+    try {
+      fontStore.log(t("lan.busy"));
       const meta = buildCreateClockMetadata(name);
-      const blob = await renderDialBackgroundJpegBlob();
+      const blob = await renderDialBackgroundJpegBlobForLanUpload();
+      assertNonEmptyDialImageBlob(blob);
       const data = await divoomCreateMultipart(meta, blob);
       const createdId = extractLanResponseClockId(data);
       if (Number.isFinite(createdId) && createdId > 0) {
@@ -3591,7 +4079,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       if (activeLocalWatchfaceId) await flushPersistActiveWorkspace();
       refreshLocalWatchfaceListUi();
     } catch (e) {
-      alert(errorToText(e));
+      alert(`${formatLanCreateFailureAlert(errorToText(e))}\n\n${t("lan.debug.afterFailureHint")}`);
       refreshLanActionButtons();
     } finally {
       refreshLanActionButtons();
@@ -3688,6 +4176,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         void refreshLanDeviceListUi({ silent: false });
       });
     }
+    if (dom.btnLanCopyDebug) {
+      dom.btnLanCopyDebug.addEventListener("click", () => {
+        void copyLanDiagnosticsToClipboard();
+      });
+    }
     if (dom.selectLanDevice) {
       dom.selectLanDevice.addEventListener("change", () => {
         const id = dom.selectLanDevice.value;
@@ -3702,6 +4195,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
   }
 
   function wireLanUi() {
+    if (dom.btnLanCreateOnDevice) {
+      dom.btnLanCreateOnDevice.addEventListener("click", () => {
+        if (dom.btnLanCreateOnDevice.disabled) return;
+        openLanCreateNameDialogForDeviceCreate();
+      });
+    }
     if (dom.btnLanApplyWatchfaceConfig) {
       dom.btnLanApplyWatchfaceConfig.addEventListener("click", () => {
         if (dom.btnLanApplyWatchfaceConfig.disabled) return;
@@ -4069,15 +4568,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       i.textContent = `#${idx}`;
       const label = document.createElement("div");
       label.className = "disp-label";
-      label.textContent = `${item.item_id || "-"} | ${formatDispOptionText(toNum(item.disp, 0))}`;
-      const fid = resolveItemFontId(item);
-      const meta = fontStore.getMeta(fid);
-      const tag = document.createElement("span");
-      tag.className = "font-tag";
-      tag.textContent = `${t("common.fontPrefix")}${fid}${
-        meta ? ` ${fontStore.isImageFont(fid) ? "[IMG]" : "[TTF]"} ${meta.name || ""}` : ""
-      }`;
-      li.append(i, label, tag);
+      label.textContent = dispComment(toNum(item.disp, 0));
+      li.append(i, label);
       li.addEventListener("click", () => {
         state.selectedIndex = idx;
         refreshItemListUi();
@@ -4389,6 +4881,11 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
     const rotateSingleImage = ROTATE_SINGLE_IMAGE_DISP_IDS.has(currentDisp);
     editorFields.forEach((field) => {
+      if (
+        field.key === "hier" &&
+        !(IMAGE_DISP_IDS.has(currentDisp) || PHOTO_ALBUM_PREVIEW_DISP_IDS.has(currentDisp))
+      )
+        return;
       const hideByImageDisp =
         isImageLikeDisp &&
         IMAGE_EDITOR_HIDDEN_FIELDS.has(field.key) &&
@@ -4401,6 +4898,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
       const k = document.createElement("span");
       k.className = "k";
       let keyLabel = t(field.labelKey);
+      if (field.key === "hier") k.title = t("editor.hierTierHint");
       if (field.key === "disp") keyLabel += ` (${dispComment(toNum(item.disp, 0))})`;
       if (field.key === "font") {
         const meta = fontStore.getMeta(fontId);
@@ -4414,6 +4912,23 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         controlNode = input;
       } else if (field.key === "alig") {
         input = buildAlignSelectForEditor(item.alig);
+        controlNode = input;
+      } else if (field.key === "hier") {
+        input = document.createElement("select");
+        input.dataset.key = "hier";
+        const v = toNum(item.hier, 0);
+        const tiers = [
+          [0, "editor.hierTier0"],
+          [1, "editor.hierTier1"],
+          [2, "editor.hierTier2"]
+        ];
+        for (const [val, lk] of tiers) {
+          const o = document.createElement("option");
+          o.value = String(val);
+          o.textContent = t(lk);
+          input.appendChild(o);
+        }
+        input.value = String([0, 1, 2].includes(v) ? v : 0);
         controlNode = input;
       } else if (field.key === "font") {
         input = buildFontSelectForEditor(fontId);
@@ -4448,6 +4963,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
           else state.previewTextOverrides.delete(state.selectedIndex);
         } else if (field.key === "disp") {
           current[field.key] = toNum(input.value, toNum(current[field.key], 0));
+        } else if (field.key === "hier") {
+          current[field.key] = toNum(input.value, 0);
         } else if (field.key === "font") {
           current[field.key] = toNum(input.value, toNum(current[field.key], 0));
         } else if (field.key === "alig") {
@@ -4471,7 +4988,9 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         }
       };
       input.addEventListener(
-        field.key === "font" || field.key === "disp" || field.key === "alig" ? "change" : "input",
+        field.key === "font" || field.key === "disp" || field.key === "alig" || field.key === "hier"
+          ? "change"
+          : "input",
         onFieldChange
       );
       wrap.append(k, controlNode || input);
@@ -4905,7 +5424,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     };
   }
 
-  function drawTextItem(ctx, item, disp, text, index) {
+  function drawTextItem(ctx, item, disp, text) {
     const x = toNum(item.x, 0);
     const y = toNum(item.y, 0);
     const w = Math.max(8, toNum(item.w, 120));
@@ -4976,12 +5495,65 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     } else {
       drawMain();
     }
+  }
 
-    if (state.selectedIndex === index) {
-      ctx.strokeStyle = "rgba(106,161,255,0.85)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  /** 画布选中高亮矩形（与各分支绘制用到的 x/y/w/h 一致）。 */
+  function outlineBoxForCanvasItem(item, disp) {
+    const x = toNum(item.x, 0);
+    const y = toNum(item.y, 0);
+    const d = toNum(disp, 0);
+    if (POINTER_DISP_IDS.has(d)) {
+      return {
+        x,
+        y,
+        w: Math.max(8, toNum(item.w, 50)),
+        h: Math.max(8, toNum(item.h, 50))
+      };
     }
+    if (IMAGE_DISP_IDS.has(d) || toNum(item.image_id, 0) > 0 || !!item.image_addr) {
+      return {
+        x,
+        y,
+        w: Math.max(12, toNum(item.w, 60)),
+        h: Math.max(12, toNum(item.h, 60))
+      };
+    }
+    return {
+      x,
+      y,
+      w: Math.max(8, toNum(item.w, 120)),
+      h: Math.max(8, toNum(item.h, 40))
+    };
+  }
+
+  /**
+   * 本地「我的设计」下选中项：更明显的高亮描边（不依赖元素半透明 transp）。
+   */
+  function drawCanvasItemSelectionHighlight(ctx, item, disp) {
+    const pad = 5;
+    const { x, y, w, h } = outlineBoxForCanvasItem(item, disp);
+    const px = x - pad;
+    const py = y - pad;
+    const pw = w + pad * 2;
+    const ph = h + pad * 2;
+
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = "rgba(77,154,247,0.22)";
+    ctx.fillRect(px, py, pw, ph);
+
+    ctx.strokeStyle = "rgba(41,132,229,0.98)";
+    ctx.lineWidth = 5;
+    ctx.lineJoin = "round";
+    ctx.strokeRect(px + 2.5, py + 2.5, pw - 5, ph - 5);
+
+    ctx.strokeStyle = "rgba(240,251,255,0.95)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px + 8, py + 8, pw - 16, ph - 16);
+
+    ctx.restore();
   }
 
   function wrapTextByWidth(ctx, text, maxWidth, spacingPx = 0) {
@@ -5002,6 +5574,15 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     return lines.slice(0, 6);
   }
 
+  /** 画布叠加顺序（与分层字段 hier 对齐）：1 最底层 → 0 默认中层 → 2 最顶层；同层内保持 ItemList 顺序。 */
+  function hierPaintSortKey(item, stableIdx) {
+    const h = toNum(item?.hier, 0);
+    let tier = 1;
+    if (h === 1) tier = 0;
+    else if (h === 2) tier = 2;
+    return { tier, stableIdx };
+  }
+
   function renderWatchface() {
     dom.canvas.width = state.width;
     dom.canvas.height = state.height;
@@ -5009,7 +5590,12 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
     const list = state.config.ItemList || [];
     const indexed = list.map((item, idx) => ({ item, idx }));
-    indexed.sort((a, b) => toNum(a.item.hier, a.idx) - toNum(b.item.hier, b.idx));
+    indexed.sort((a, b) => {
+      const ka = hierPaintSortKey(a.item, a.idx);
+      const kb = hierPaintSortKey(b.item, b.idx);
+      if (ka.tier !== kb.tier) return ka.tier - kb.tier;
+      return ka.stableIdx - kb.stableIdx;
+    });
 
     for (const { item, idx } of indexed) {
       const disp = toNum(item.disp, 0);
@@ -5027,9 +5613,21 @@ const LAN_DEVICE_HTTP_PORT = 9000;
         }
       } else {
         const txt = state.previewTextOverrides.get(idx) || getPlaceholderText(disp, item);
-        drawTextItem(watchCtx, item, disp, txt, idx);
+        drawTextItem(watchCtx, item, disp, txt);
       }
       watchCtx.restore();
+    }
+
+    /** 选中框最后绘制，盖住所有元素（不受 hier 叠放顺序遮挡）。 */
+    if (
+      sidebarBrowseMode === "local" &&
+      state.selectedIndex >= 0 &&
+      state.selectedIndex < list.length
+    ) {
+      const sel = list[state.selectedIndex];
+      if (sel) {
+        drawCanvasItemSelectionHighlight(watchCtx, sel, toNum(sel.disp, 0));
+      }
     }
 
     applyCanvasZoom();
@@ -5269,7 +5867,6 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     if (!src) return;
     const clone = normalizeItem({ ...src, item_id: `${src.item_id || "item"}_copy` }, state.config.ItemList.length);
     clone.y += 20;
-    clone.hier = state.config.ItemList.length;
     state.config.ItemList.push(clone);
     syncItemIdList();
     state.selectedIndex = state.config.ItemList.length - 1;
@@ -5317,6 +5914,7 @@ const LAN_DEVICE_HTTP_PORT = 9000;
 
   function bindEvents() {
     wireLocalWatchDialogs();
+    wireAboutAdminUi();
 
     if (dom.appModeLocal) {
       dom.appModeLocal.addEventListener("click", () => {
@@ -5455,6 +6053,8 @@ const LAN_DEVICE_HTTP_PORT = 9000;
     fontStore.log(t("log.uiBuildVersion", { tag: APP_BUILD_TAG }));
     refreshBackgroundSourceLabel();
     loadPhotoAlbumDemoImages();
+
+    await ensureBundledStarterWatchfaceIfLibraryEmpty();
 
     const lastId = getLastActiveId();
     const rec = lastId ? getWatchface(lastId) : null;

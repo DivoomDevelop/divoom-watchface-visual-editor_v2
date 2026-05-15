@@ -34,6 +34,11 @@ const jaJP = Object.freeze({
   "ui.legend.pointer": "ポインター要素",
   "ui.default.clockNotLoaded": "未読み込み",
   "ui.default.untitled": "無題",
+  "editor.hierTier": "レイヤー（hier・画像・アルバム）",
+  "editor.hierTier0": "0 — 標準（中間）",
+  "editor.hierTier1": "1 — 下層（標準より下に描画）",
+  "editor.hierTier2": "2 — 上層（最前面）",
+  "editor.hierTierHint": "描画順：1 が最背面、続いて 0、最後に 2 が最前面です。",
   "editor.tipSelectItem": "先に設定を読み込むか、上の「追加」を押して Item を作成してください。",
   "editor.align.left": "左寄せ",
   "editor.align.right": "右寄せ",
@@ -75,7 +80,29 @@ const jaJP = Object.freeze({
   "localWatch.listHint": "クリックで開く；× で削除。名前付きのデザインは編集中に自動保存されます。",
   "template.err.noneSelected": "先にテンプレート一覧でプレビューする項目を選んでください。",
   "ui.aria.appModeTabs": "編集モード",
-  "ui.aria.templateCategoryRail": "テンプレートカテゴリ"
+  "ui.aria.templateCategoryRail": "テンプレートカテゴリ",
+
+  "about.open": "について",
+  "about.title": "このエディターについて",
+  "about.intro":
+    "Divoom ウォッチフェイスのブラウザ上プレビュー・編集ツールです。「マイデザイン」の変更はこのブラウザのローカルに保存されます。",
+  "about.dblhint": "下の領域をダブルクリックすると管理者パスワードのダイアログが開きます。",
+  "about.dblAria": "管理者用入口（ダブルクリック）",
+  "about.versionLine": "ビルド: {tag}",
+  "about.close": "閉じる",
+  "about.adminBadge": "管理者",
+  "about.adminExit": "管理者モードを終了",
+  "about.adminPwdTitle": "管理者確認",
+  "about.adminPwdCaption": "管理者パスワードを入力してください。",
+  "about.adminPwdLabel": "パスワード",
+  "about.adminPwdSubmit": "解除",
+  "about.adminPwdOk": "OK",
+  "about.adminAlreadyTitle": "管理者モード",
+  "about.adminAlreadyBody": "このブラウザは既に管理者モードです。",
+  "about.adminPwdSuccess": "解除しました。",
+  "about.adminPwdWrong": "パスワードが違います。",
+  "about.adminUnlocked": "このブラウザで管理者モードを有効にしました。",
+  "about.adminLoggedOut": "このブラウザで管理者モードを無効にしました。"
 });
 
 export default jaJP;

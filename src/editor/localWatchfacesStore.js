@@ -1,5 +1,7 @@
 export const STORAGE_KEY = "divoom_local_watchfaces_v1";
 export const LAST_ACTIVE_ID_KEY = "divoom_last_active_watchface_id";
+/** Stable id for the bundled 「立体方块2」preset seeded on first launch (empty library). */
+export const BUNDLED_STARTER_WATCHFACE_ID = "wf-bundled-starter-v1";
 
 export function listWatchfaces() {
   try {

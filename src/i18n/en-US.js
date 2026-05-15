@@ -33,6 +33,8 @@ const enUS = Object.freeze({
   "ui.btn.newWatchface": "New watchface",
   "ui.btn.lanApplyWatchfaceConfig": "Apply watchface config",
   "ui.btn.lanCreate": "Create New Watchface",
+  "ui.btn.lanCopyDebug": "LAN log",
+  "ui.btn.lanCopyDebugTitle": "Copy last LAN multipart / diagnostics to clipboard (for bug reports). Console: __DIVOOM_LAN_DEBUG__",
   "ui.btn.lanApply": "Apply Changes",
   "ui.btn.applyJson": "Apply Pasted JSON",
   "ui.btn.clearJson": "Clear Text",
@@ -57,6 +59,28 @@ const enUS = Object.freeze({
   "ui.default.clockNotLoaded": "Not Loaded",
   "ui.default.untitled": "Untitled",
 
+  "about.open": "About",
+  "about.title": "About this editor",
+  "about.intro":
+    "Divoom watchface preview and editing in the browser. Changes to My designs are stored locally in this browser.",
+  "about.dblhint": "Double-click the area below to open the administrator password dialog.",
+  "about.dblAria": "Administrator entry (double-click)",
+  "about.versionLine": "Build: {tag}",
+  "about.close": "Close",
+  "about.adminBadge": "Admin",
+  "about.adminExit": "Exit administrator mode",
+  "about.adminPwdTitle": "Administrator",
+  "about.adminPwdCaption": "Enter the administrator password.",
+  "about.adminPwdLabel": "Password",
+  "about.adminPwdSubmit": "Unlock",
+  "about.adminPwdOk": "OK",
+  "about.adminAlreadyTitle": "Administrator mode",
+  "about.adminAlreadyBody": "This browser session is already in administrator mode.",
+  "about.adminPwdSuccess": "Unlocked.",
+  "about.adminPwdWrong": "Incorrect password.",
+  "about.adminUnlocked": "Administrator mode enabled for this browser.",
+  "about.adminLoggedOut": "Administrator mode disabled for this browser.",
+
   "editor.itemId": "Item Identifier (item_id)",
   "editor.disp": "Display Type (disp)",
   "editor.font": "Font Selection (font)",
@@ -66,6 +90,11 @@ const enUS = Object.freeze({
   "editor.y": "Y Position (y)",
   "editor.w": "Width (w)",
   "editor.h": "Height (h)",
+  "editor.hierTier": "Layer (hier, image/album)",
+  "editor.hierTier0": "0 — Default (middle layer)",
+  "editor.hierTier1": "1 — Bottom layer (below default)",
+  "editor.hierTier2": "2 — Top layer (above default)",
+  "editor.hierTierHint": "Canvas draw order: 1 paints first under others, then 0, then 2 on top.",
   "editor.align": "Alignment (alig)",
   "editor.sep": "Character Spacing (sep)",
   "editor.transp": "Opacity (transp)",
@@ -156,7 +185,22 @@ const enUS = Object.freeze({
   "lan.err.returnCode": "Device returned error code {code}",
   "lan.err.network": "Cannot reach device: {message}. For development run npm run dev or npm run preview and set DIVOOM_LAN_TARGET (e.g. http://192.168.1.5:9000) so /divoom-proxy forwards to the device.",
   "lan.err.emptyItemList": "ItemList is empty; cannot patch safely. Load or switch to an editable watchface first.",
+  "lan.err.precheckEmptyItemList": "Device returned an empty ItemList for the current clock (GetLocalClockInfo). Switch to an editable local watchface (e.g. watchface_set_clock_select) before applying; do not auto-create a dial for this case.",
   "lan.err.emptyName": "Enter a watchface name.",
+  "lan.err.invalidDialImage":
+    "Could not build a dial background image for upload (empty or too small). Try reloading the background or clear and pick it again.",
+  "lan.err.createLikelyUnsupported":
+    "The device rejected CreateLocalClock over LAN (common on Divoom Frame: this multipart API is often unavailable). Create or pick an editable local dial on the device or Divoom app first, then use Apply watchface config. Device message: {message}",
+  "lan.err.multipartUnknownPath": "Internal error: unknown LAN multipart path {path}.",
+  "lan.err.multipartCommandMismatch":
+    "Internal error: multipart {path} expects JSON Command {expected}, got {actual}. Report this if it appears after a normal action.",
+  "lan.log.multipart": "LAN multipart: POST {path} — JSON Command: {command}",
+  "lan.debug.copied": "LAN diagnostics copied to clipboard. Paste into chat or a text file.",
+  "lan.debug.copiedLog": "LAN diagnostics copied to clipboard.",
+  "lan.debug.copyFailed": "Could not write clipboard (browser blocked?). Full dump was printed to DevTools console (F12).",
+  "lan.debug.copyFailedLog": "LAN diagnostics: clipboard failed — see browser console (F12).",
+  "lan.debug.afterFailureHint":
+    "Auto-debug: last request summary is in the log panel above and in the console (F12); clipboard may contain the last JSON record if the browser allowed it. Use「LAN log」to copy the full history anytime.",
   "lan.success.patch": "Watchface config was sent to the device over LAN.",
   "lan.success.createClockIdApplied": "Created on device; saved ClockId {id} into this configuration.",
   "lan.success.create": "Create-local-clock succeeded, but the response contained no usable ClockId. Confirm on the device or use Apply watchface config again.",
@@ -199,7 +243,8 @@ const enUS = Object.freeze({
   "log.templateApplied": "Template {id} applied. {resourceSummary}",
   "log.configExported": "Config exported: {name}",
   "log.backgroundLoaded": "Background loaded: {name}",
-  "log.uiBuildVersion": "UI build version: {tag}"
+  "log.uiBuildVersion": "UI build version: {tag}",
+  "log.bundledStarterSeeded": "Seeded default My designs entry: {name}."
 });
 
 export default enUS;
