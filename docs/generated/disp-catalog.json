@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-14T03:49:37.617Z",
+  "generatedAt": "2026-05-14T10:58:52.649Z",
   "sourceFile": "src/editor/app.js (DISP_NAME_MAP)",
   "summary": {
-    "count": 187
+    "count": 190
   },
   "rulesForModels": [
     "disp is the render/driver kind for an item (time slice, image slot, text, etc.).",
@@ -1632,6 +1632,15 @@
       }
     },
     {
+      "disp": 254,
+      "name": "TEMP_DIGIT2",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": true,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
       "disp": 260,
       "name": "WEBP_FULL_WEATHER",
       "hints": {
@@ -1652,6 +1661,24 @@
     {
       "disp": 279,
       "name": "DIAL_COMPONENT_END",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": false,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 339,
+      "name": "TEMP_DIGIT3",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": true,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 342,
+      "name": "HUMI_ONLY_NUM",
       "hints": {
         "likelyUsesRasterOrAssetLayer": false,
         "oftenUsesVectorFontForText": false,

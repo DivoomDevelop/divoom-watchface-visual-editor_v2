@@ -32,6 +32,7 @@ const zhCN = Object.freeze({
   "ui.btn.loadSample": "加载示例表盘",
   "ui.btn.newWatchface": "新建表盘",
   "ui.btn.lanApplyWatchfaceConfig": "应用表盘配置",
+  "ui.btn.lanShowCurrentClockOnDevice": "显示当前表盘",
   "ui.btn.lanCreate": "创建新表盘",
   "ui.btn.lanCopyDebug": "LAN 诊断",
   "ui.btn.lanCopyDebugTitle": "复制最近 LAN 请求摘要到剪贴板（供排查）。控制台可查看 __DIVOOM_LAN_DEBUG__",
@@ -176,7 +177,9 @@ const zhCN = Object.freeze({
   "alert.localAssetLoadFailed": "本地动画加载失败: {message}",
 
   "lan.dialog.title": "下发到设备的表盘",
-  "lan.dialog.missing": "无法打开下发名称对话框（页面结构异常）。",
+  "lan.dialog.missing": "无法打开确认对话框（页面结构异常）。",
+  "lan.dialog.confirmCreateTitle": "在设备上创建新表盘",
+  "lan.dialog.confirmCreateBody": "将使用当前保存的名称「{name}」在设备上创建新表盘，是否继续？",
   "lan.dialog.nameLabel": "表盘名称",
   "lan.dialog.cancel": "取消",
   "lan.dialog.submit": "创建并下发",
@@ -185,6 +188,7 @@ const zhCN = Object.freeze({
   "lan.err.network": "无法连接设备：{message}。开发时请运行 npm run dev 或 npm run preview，并设置环境变量 DIVOOM_LAN_TARGET（例：http://192.168.1.5:9000）以启用 /divoom-proxy。",
   "lan.err.emptyItemList": "ItemList 为空，无法安全下发。请先加载或选择可编辑的表盘。",
   "lan.err.precheckEmptyItemList": "设备当前表盘 ItemList 为空（GetLocalClockInfo）。请先切换到可编辑的本地表盘后再应用；此情况勿自动新建表盘（可用 watchface_set_clock_select）。",
+  "lan.err.noLanTarget": "请先在上方「LAN 设备」中选择设备，或为代理配置 LAN 目标地址。",
   "lan.err.emptyName": "请输入表盘名称。",
   "lan.err.invalidDialImage": "无法生成可上传的表盘底图（为空或过小）。请重新加载底图或清除后重新选择。",
   "lan.err.createLikelyUnsupported":
@@ -193,6 +197,10 @@ const zhCN = Object.freeze({
   "lan.err.multipartCommandMismatch":
     "内部错误：{path} 要求 JSON 内 Command 为 {expected}，实际为 {actual}。若在正常操作下出现请反馈。",
   "lan.log.multipart": "LAN multipart：POST {path} — JSON Command：{command}",
+  "lan.log.bundleMultipart":
+    "LAN multipart：使用 DialAssets=bundle，gzip tar（元素素材 {leaves} 个，tar {tarBytes} B → gz {gzBytes} B）。",
+  "lan.err.bundleCompressionUnsupported": "当前浏览器不支持 CompressionStream（gzip），无法打包元素素材下发，请换用新版 Chrome / Edge / Safari。",
+  "lan.err.bundleAssetFetchFailed": "打包 LAN 素材失败：无法读取「{name}」的二进制（objectUrl）。请重新加载模板或重新选择本地图片。",
   "lan.debug.copied": "已将 LAN 诊断信息复制到剪贴板，可粘贴到对话或文本文件。",
   "lan.debug.copiedLog": "已复制 LAN 诊断到剪贴板。",
   "lan.debug.copyFailed": "无法写入剪贴板（浏览器可能拦截）。完整内容已输出到开发者工具控制台（F12）。",
@@ -200,6 +208,7 @@ const zhCN = Object.freeze({
   "lan.debug.afterFailureHint":
     "已自动排查：摘要已写入上方日志区与浏览器控制台（F12）；若浏览器允许，剪贴板可能已是最近一条 JSON。可随时点「LAN 诊断」复制完整历史。",
   "lan.success.patch": "已通过 LAN 更新当前表盘配置。",
+  "lan.success.setClockSelectId": "已请求设备显示 ClockId {id}（Channel/SetClockSelectId）。",
   "lan.success.createClockIdApplied": "已在设备创建表盘并已写入 ClockId：{id}。",
   "lan.success.create": "已在设备请求创建表盘，但应答未包含可用的 ClockId，请在对端界面确认或使用「应用表盘配置」再次同步配置。",
   "lan.busy": "正在与设备通信…",
@@ -208,7 +217,7 @@ const zhCN = Object.freeze({
   "lan.device.listFailed": "获取设备列表失败：{message}",
 
   "localWatch.listEmpty": "暂无已保存的设计；命名保存后将出现在此列表。",
-  "localWatch.listHint": "点击打开设计；× 删除。已打开的命名设计会自动保存修改。",
+  "localWatch.listHint": "点击打开设计；已下发设备（有 ClockId）的条目可点「复制」做副本（需填新名称）；× 删除。已打开的命名设计会自动保存修改。",
   "localWatch.savedAs": "已保存到我的设计：{name}",
   "localWatch.loaded": "已打开我的设计：{name}",
   "localWatch.newBlank": "新建空白设计",
@@ -231,6 +240,13 @@ const zhCN = Object.freeze({
   "localWatch.dialog.bodyNew": "请为新表盘输入名称。创建后对表盘的修改会自动保存到此条目（无需再命名）。",
   "localWatch.dialog.save": "保存",
   "localWatch.dialog.create": "创建",
+  "localWatch.duplicateBtn": "复制",
+  "localWatch.duplicateAria": "复制为本地副本（不含设备 ClockId）",
+  "localWatch.dialog.titleDuplicate": "复制设计",
+  "localWatch.dialog.bodyDuplicate":
+    "将从「{name}」复制一份配置为新条目。请输入新表盘名称（副本不含设备 ClockId，需重新创建或下发）。",
+  "localWatch.dialog.duplicateConfirm": "复制并保存",
+  "localWatch.duplicatedAs": "已复制并打开：{name}",
 
   "log.configApplied": "已应用配置: {source}",
   "log.sampleLoadFailed": "示例配置不可用（已移除在线示例加载）。",

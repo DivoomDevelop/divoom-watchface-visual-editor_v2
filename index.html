@@ -36,6 +36,7 @@
         <button id="btn-lan-copy-debug" type="button" class="btn-ghost btn-lan"></button>
         <button id="btn-lan-create-on-device" type="button" class="btn-ghost btn-lan"></button>
         <button id="btn-lan-apply-config" type="button" class="btn-lan" disabled></button>
+        <button id="btn-lan-show-current-clock" type="button" class="btn-lan" hidden></button>
       </div>
       <label class="lang-switch" for="select-lang">
         <span id="lbl-lang">语言</span>
@@ -157,10 +158,7 @@
   <dialog id="lan-create-dialog" class="lan-dialog">
     <form id="lan-create-form">
       <h3 id="lan-create-title" class="lan-dialog-title"></h3>
-      <label class="lan-dialog-field">
-        <span id="lan-create-label-text"></span>
-        <input id="lan-create-name" type="text" autocomplete="off" maxlength="64" />
-      </label>
+      <p id="lan-create-body" class="lan-dialog-body"></p>
       <div class="lan-dialog-actions">
         <button type="button" id="lan-create-cancel" class="btn-ghost"></button>
         <button type="submit" id="lan-create-submit" class="btn-primary"></button>

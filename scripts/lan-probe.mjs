@@ -1,5 +1,7 @@
 /**
- * 一键探测 Divoom 设备 LAN：GetLocalClockInfo + create_local_clock（与编辑器同源 multipart）。
+ * 一键探测 Divoom 设备 LAN：GetLocalClockInfo + create_local_clock（与编辑器 / mcp-divoom-lan 同源 multipart）。
+ * 编辑器在有 ItemList 本地元素素材（image_addr + 已加载二进制）时会改用 DialAssets=bundle，第二段为 clock_bg.tar.gz（内含 clock_bg.jpg 与各叶子文件名）；
+ * 本脚本仍使用单文件 JPEG（DialAssets=image）作为最小连通性探测。
  * 用法: node scripts/lan-probe.mjs 192.168.1.5
  *   或: DIVOOM_LAN_IP=192.168.1.5 npm run lan:probe
  * 依赖: 系统 PATH 中有 curl；本机有 python + Pillow（用于生成 800×1280 测试 JPEG）。
@@ -23,6 +25,7 @@ const base = /^https?:\/\//i.test(ip) ? ip.replace(/\/$/, "") : `http://${ip}:90
 
 const jpgPath = path.join(__dirname, ".lan-probe-bg.jpg");
 const metaPath = path.join(__dirname, ".lan-probe-meta.json");
+const mpPath = path.join(__dirname, ".lan-probe-multipart.bin");
 
 function sh(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, {
@@ -32,6 +35,33 @@ function sh(cmd, args, opts = {}) {
     ...opts
   });
   return r;
+}
+
+/** 与 divoom_app/tools/mcp-divoom-lan `buildMultipartTwoParts`（watchface_create_local_clock）一致 */
+function buildCreateLocalClockMultipartBody(metaUtf8Buffer, jpgBuffer) {
+  const b = "----DivoomMcpCreateClockBoundary7YA4YWxkTrZu0gW";
+  const crlf = "\r\n";
+  const filePartName = String(Date.now());
+  const head1 = Buffer.from(
+    `--${b}${crlf}` +
+      `Content-Disposition: form-data; name="json"; filename="cmd.json"${crlf}` +
+      `Content-Type: application/json${crlf}` +
+      `Content-Length: ${metaUtf8Buffer.length}${crlf}` +
+      crlf
+  );
+  const mid = Buffer.from(crlf);
+  const head2 = Buffer.from(
+    `--${b}${crlf}` +
+      `Content-Disposition: form-data; name="${filePartName}"; filename="clock_bg.jpg"${crlf}` +
+      `Content-Type: application/octet-stream${crlf}` +
+      `Content-Length: ${jpgBuffer.length}${crlf}` +
+      crlf
+  );
+  const end = Buffer.from(`${crlf}--${b}--${crlf}`);
+  return {
+    buffer: Buffer.concat([head1, metaUtf8Buffer, mid, head2, jpgBuffer, end]),
+    contentType: `multipart/form-data; boundary=${b}`
+  };
 }
 
 const py = process.platform === "win32" ? "python" : "python3";
@@ -105,7 +135,10 @@ const meta = {
 fs.writeFileSync(metaPath, JSON.stringify(meta), "utf8");
 
 console.log("\n=== POST /create_local_clock (multipart) ===");
-const part2 = `${Date.now()}`;
+const metaBuf = Buffer.from(JSON.stringify(meta), "utf8");
+const jpgBuf = fs.readFileSync(jpgPath);
+const { buffer: mpBuf, contentType: mpCt } = buildCreateLocalClockMultipartBody(metaBuf, jpgBuf);
+fs.writeFileSync(mpPath, mpBuf);
 const c = sh(curl, [
   "-sS",
   "--connect-timeout",
@@ -115,14 +148,14 @@ const c = sh(curl, [
   "-X",
   "POST",
   `${base}/create_local_clock`,
-  "-F",
-  `json=@${metaPath};type=application/json;filename=cmd.json`,
-  "-F",
-  `${part2}=@${jpgPath};type=image/jpeg;filename=clock_bg.jpg`
+  "-H",
+  `Content-Type: ${mpCt}`,
+  "--data-binary",
+  `@${mpPath}`
 ]);
 console.log(c.stdout || c.stderr || `(exit ${c.status})`);
 
-for (const f of [jpgPath, metaPath, getPath]) {
+for (const f of [jpgPath, metaPath, getPath, mpPath]) {
   try {
     fs.unlinkSync(f);
   } catch {

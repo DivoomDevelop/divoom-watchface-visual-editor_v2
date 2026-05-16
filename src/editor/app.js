@@ -22,7 +22,7 @@ import {
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
 
-const APP_BUILD_TAG = "2026-05-11 12:00";
+const APP_BUILD_TAG = "2026-05-15 20:05";
 
 /** 本地「管理员模式」开关（仅前端展示/后续功能入口；勿作安全边界）。 */
 const ADMIN_UNLOCK_STORAGE_KEY = "divoom_editor_admin_unlocked_v1";
@@ -35,6 +35,8 @@ const LAN_DEVICE_HARDWARE_WHITELIST = new Set([500, 510, 511, 512]);
 const LAN_DEVICE_HTTP_PORT = 9000;
 /** 与固件 /create_local_clock、/patch_local_clock 第二段约定一致（参见 LAN Quick Reference：tarball 内 clock_bg.*）。 */
 const LAN_MULTIPART_DIAL_FILENAME = "clock_bg.jpg";
+/** 第二段为 gzip tar（内含 clock_bg.* 与 ItemList image_addr 叶子），与 `DialAssets: bundle` 对应。 */
+const LAN_MULTIPART_BUNDLE_FILENAME = "clock_bg.tar.gz";
 /** 设为 1 或在地址栏加 ?lanDebug=1 后刷新：日志区输出 multipart JSON 片段等详细信息。 */
 const LAN_DEBUG_STORAGE_VERBOSE = "divoom_lan_verbose";
 const LAN_DEBUG_HISTORY_MAX = 12;
@@ -2020,14 +2022,14 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     txtBgSourcePath: byId("txt-bg-source-path"),
     btnClearBg: byId("btn-clear-bg"),
     btnLanApplyWatchfaceConfig: byId("btn-lan-apply-config"),
+    btnLanShowCurrentClockOnDevice: byId("btn-lan-show-current-clock"),
     btnLanCreateOnDevice: byId("btn-lan-create-on-device"),
     lanCreateDialog: byId("lan-create-dialog"),
     lanCreateForm: byId("lan-create-form"),
-    lanCreateName: byId("lan-create-name"),
+    lanCreateBody: byId("lan-create-body"),
     lanCreateCancel: byId("lan-create-cancel"),
     lanCreateSubmit: byId("lan-create-submit"),
     lanCreateTitle: byId("lan-create-title"),
-    lanCreateLabelText: byId("lan-create-label-text"),
     localSaveNamedDialog: byId("local-save-named-dialog"),
     localSaveNamedTitle: byId("local-save-named-title"),
     localSaveNamedBody: byId("local-save-named-body"),
@@ -2568,9 +2570,10 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     setNodeText(dom.btnClearBg, t("ui.btn.clearBg"));
     if (dom.btnLanApplyWatchfaceConfig)
       setNodeText(dom.btnLanApplyWatchfaceConfig, t("ui.btn.lanApplyWatchfaceConfig"));
+    if (dom.btnLanShowCurrentClockOnDevice)
+      setNodeText(dom.btnLanShowCurrentClockOnDevice, t("ui.btn.lanShowCurrentClockOnDevice"));
     if (dom.btnLanCreateOnDevice) setNodeText(dom.btnLanCreateOnDevice, t("ui.btn.lanCreate"));
-    if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.title"));
-    if (dom.lanCreateLabelText) setNodeText(dom.lanCreateLabelText, t("lan.dialog.nameLabel"));
+    if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.confirmCreateTitle"));
     if (dom.lanCreateCancel) setNodeText(dom.lanCreateCancel, t("lan.dialog.cancel"));
     if (dom.lanCreateSubmit) setNodeText(dom.lanCreateSubmit, t("lan.dialog.submit"));
 
@@ -2965,15 +2968,21 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   function refreshLanActionButtons() {
     const applyBtn = dom.btnLanApplyWatchfaceConfig;
     const createBtn = dom.btnLanCreateOnDevice;
+    const showClockBtn = dom.btnLanShowCurrentClockOnDevice;
+    const hasClockId = toNum(state.config?.ClockId, 0) > 0;
     if (sidebarBrowseMode === "template") {
       if (applyBtn) applyBtn.disabled = true;
       if (createBtn) createBtn.disabled = true;
+      if (showClockBtn) showClockBtn.hidden = true;
       return;
     }
-    const hasClockId = toNum(state.config?.ClockId, 0) > 0;
     const dirty = getLanDirtySnapshot() !== lanBaselineSignature;
     if (applyBtn) applyBtn.disabled = !hasClockId || !dirty;
     if (createBtn) createBtn.disabled = hasClockId;
+    if (showClockBtn) {
+      showClockBtn.hidden = !hasClockId;
+      showClockBtn.disabled = false;
+    }
   }
 
   function refreshSidebarBrowseChrome() {
@@ -3050,12 +3059,13 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       const blocking = mode === "blocking";
       const applyTpl = mode === "apply_template";
       const newWatchface = mode === "new_watchface";
+      const duplicateWatchface = mode === "duplicate_watchface";
 
       if (dom.localSaveNamedLater)
-        dom.localSaveNamedLater.hidden = blocking || applyTpl || newWatchface;
+        dom.localSaveNamedLater.hidden = blocking || applyTpl || newWatchface || duplicateWatchface;
       if (dom.localSaveNamedDiscard) dom.localSaveNamedDiscard.hidden = !blocking;
       if (dom.localSaveNamedCancel)
-        dom.localSaveNamedCancel.hidden = !(blocking || applyTpl || newWatchface);
+        dom.localSaveNamedCancel.hidden = !(blocking || applyTpl || newWatchface || duplicateWatchface);
 
       if (blocking) {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleBlocking"));
@@ -3072,6 +3082,10 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       } else if (newWatchface) {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleNew"));
         setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyNew"));
+      } else if (duplicateWatchface) {
+        setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleDuplicate"));
+        const srcNm = context?.sourceName ? String(context.sourceName) : "";
+        setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyDuplicate", { name: srcNm }));
       } else {
         setNodeText(dom.localSaveNamedTitle, t("localWatch.dialog.titleFirst"));
         setNodeText(dom.localSaveNamedBody, t("localWatch.dialog.bodyFirst"));
@@ -3082,12 +3096,16 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       setNodeText(dom.localSaveNamedCancel, t("lan.dialog.cancel"));
       setNodeText(
         dom.localSaveNamedSubmit,
-        newWatchface ? t("localWatch.dialog.create") : t("localWatch.dialog.save")
+        newWatchface
+          ? t("localWatch.dialog.create")
+          : duplicateWatchface
+            ? t("localWatch.dialog.duplicateConfirm")
+            : t("localWatch.dialog.save")
       );
 
       if (dom.localSaveNamedInput) {
         dom.localSaveNamedInput.value =
-          newWatchface ? "" : getClockDisplayName(state.config) || "";
+          newWatchface || duplicateWatchface ? "" : getClockDisplayName(state.config) || "";
       }
       dom.localSaveNamedDialog?.showModal();
       window.requestAnimationFrame(() => {
@@ -3390,6 +3408,21 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       main.addEventListener("click", () => {
         void loadLocalWatchfaceById(row.id);
       });
+      const actions = document.createElement("div");
+      actions.className = "local-watch-row-actions";
+      const clockIdOnRecord = toNum(row.config?.ClockId, 0);
+      if (clockIdOnRecord > 0) {
+        const dup = document.createElement("button");
+        dup.type = "button";
+        dup.className = "btn-ghost btn-compact local-watch-duplicate";
+        dup.setAttribute("aria-label", t("localWatch.duplicateAria"));
+        dup.textContent = t("localWatch.duplicateBtn");
+        dup.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          void duplicateLocalWatchfaceFromRow(row.id);
+        });
+        actions.appendChild(dup);
+      }
       const del = document.createElement("button");
       del.type = "button";
       del.className = "btn-ghost btn-compact local-watch-delete";
@@ -3399,7 +3432,8 @@ const LAN_DEBUG_HISTORY_MAX = 12;
         ev.stopPropagation();
         void deleteLocalWatchface(row.id);
       });
-      li.append(main, del);
+      actions.appendChild(del);
+      li.append(main, actions);
       ul.appendChild(li);
     }
   }
@@ -3517,6 +3551,57 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       syncWorkspaceBaseline();
     }
     refreshLocalWatchfaceListUi();
+  }
+
+  async function duplicateLocalWatchfaceFromRow(sourceId) {
+    if (!sourceId) return;
+    const src = getWatchface(sourceId);
+    if (!src) return;
+    if (toNum(src.config?.ClockId, 0) <= 0) return;
+
+    const ok = await ensureWorkspaceHandledBeforeSwitch("duplicate");
+    if (!ok) return;
+
+    const sourceLabel = String(src.name || getClockDisplayName(src.config) || "").trim() || sourceId;
+    const r = await openLocalSaveNamedDialog({
+      mode: "duplicate_watchface",
+      context: { sourceName: sourceLabel }
+    });
+    if (r.action !== "save") return;
+
+    const nm = String(r.name || "").trim();
+    if (!nm) {
+      alert(t("lan.err.emptyName"));
+      return;
+    }
+
+    const newId = newWatchfaceId();
+    const newConfig = JSON.parse(JSON.stringify(src.config));
+    newConfig.ClockId = 0;
+    newConfig.NameCn = nm;
+    newConfig.NameEn = nm;
+
+    const rec = {
+      id: newId,
+      name: nm,
+      updatedAt: Date.now(),
+      config: newConfig,
+      backgroundDataUrl: src.backgroundDataUrl || "",
+      backgroundName: src.backgroundName || "",
+      backgroundSourceLabel: src.backgroundSourceLabel || "",
+      width: src.width ?? 800,
+      height: src.height ?? 1280,
+      zoom: src.zoom ?? 55,
+      previewOverrides: src.previewOverrides ? JSON.parse(JSON.stringify(src.previewOverrides)) : {},
+      templateActiveClockId: src.templateActiveClockId != null ? src.templateActiveClockId : null
+    };
+    upsert(rec);
+    activeLocalWatchfaceId = newId;
+    setLastActiveId(newId);
+    await restoreWorkspaceFromRecord(rec);
+    namingPromptDismissed = true;
+    refreshLocalWatchfaceListUi();
+    fontStore.log(t("localWatch.duplicatedAs", { name: nm }));
   }
 
   async function startNewBlankWatchface() {
@@ -3664,25 +3749,52 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return data;
   }
 
-  function buildPatchPayload() {
-    syncItemIdList();
-    const clockId = toNum(state.config.ClockId, 0);
-    const payload = {
-      ItemList: state.config.ItemList.map((item) => ({ ...item })),
-      ItemIdList: [...state.config.ItemIdList]
-    };
-    if (clockId > 0) payload.ClockId = clockId;
-    else payload.UseCurrentDisplayClock = true;
-    return payload;
+  /**
+   * 设备 PATCH 会整表替换 ItemList；编辑器里常见 image_addr 仍是模板叶子名（如 142110.bin），
+   * 而设备侧已是上传后的 http(s) URL。multipart 第二段只刷新整表 dial 图，不会逐个修元素 URL，
+   * 故下发前用 GetLocalClockInfo 按索引把「本地叶子名」合并回设备 URL，避免只改字体等字段却把图元引用破坏。
+   *
+   * 例外：用户在本机为该项「选择文件」替换素材（`fromLocalPick`）时，必须保留编辑器里的文件名，
+   * 以便与 gzip tar 中的叶子名一致；不得写回设备旧 URL，否则会与第二段上传内容不一致。
+   */
+  function mergeItemListImageAddrForLanPatch(editorItems, deviceItems) {
+    if (!Array.isArray(editorItems)) return editorItems;
+    if (!Array.isArray(deviceItems) || deviceItems.length === 0) return editorItems;
+    const n = Math.min(editorItems.length, deviceItems.length);
+    return editorItems.map((ed, idx) => {
+      const merged = { ...ed };
+      if (idx >= n) return merged;
+      const userPicked = getLocalDispAsset(ed)?.fromLocalPick === true;
+      if (userPicked) return merged;
+      const dev = deviceItems[idx];
+      const edImg = String(merged.image_addr ?? "").trim();
+      const devImg = String(dev?.image_addr ?? dev?.img_addr ?? "").trim();
+      const editorLocalLeaf = edImg.length > 0 && !/^https?:\/\//i.test(edImg);
+      const deviceHosted = /^https?:\/\//i.test(devImg);
+      if (editorLocalLeaf && deviceHosted) merged.image_addr = devImg;
+      return merged;
+    });
   }
 
-  /** 与 mcp-divoom-lan / guide-quick-reference：`Device/PatchLocalClockInfo` 首段 JSON 可含 `DialAssets`，与 `/create_local_clock` 语义一致。 */
-  function buildPatchMultipartMetadata() {
+  async function fetchLanEditableClockItemsOrThrow(clockPayload) {
+    const data = await divoomJson("Device/GetLocalClockInfo", clockPayload);
+    const items = resolveLanClockItemList(data);
+    if (!items.length) {
+      throw new Error(t("lan.err.precheckEmptyItemList"));
+    }
+    return items;
+  }
+
+  async function buildLanPatchPayloadMergedForMultipart() {
+    syncItemIdList();
+    const clockId = toNum(state.config.ClockId, 0);
+    const clockSel = clockId > 0 ? { ClockId: clockId } : { UseCurrentDisplayClock: true };
+    const deviceItems = await fetchLanEditableClockItemsOrThrow(clockSel);
+    const mergedItemList = mergeItemListImageAddrForLanPatch(state.config.ItemList, deviceItems);
     return {
-      Command: "Device/PatchLocalClockInfo",
-      ReturnCode: 0,
-      DialAssets: "image",
-      ...buildPatchPayload()
+      ...clockSel,
+      ItemList: mergedItemList.map((item) => ({ ...item })),
+      ItemIdList: [...state.config.ItemIdList]
     };
   }
 
@@ -3692,7 +3804,6 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return {
       Command: "Device/CreateLocalClock",
       ReturnCode: 0,
-      DialAssets: "image",
       ClockName: name,
       NameCn: name,
       NameEn: name,
@@ -3740,6 +3851,165 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return renderDialBackgroundJpegBlobAtQuality(0.3);
   }
 
+  /**
+   * 仅把「用户在本机选择/替换过的元素图」打入 gzip tar（`fromLocalPick`）。
+   * 模板预加载的 `.bin`（`loadLocalAssetFromUrl`，fromLocalPick=false）不打包，避免「只有用户底图」却仍走 DialAssets=bundle + tar，设备端解压/绑定异常；
+   * 新建表盘时模板叶子名一般由设备侧已有资源解析（与仅下发 dial JPEG 的旧行为一致）。
+   */
+  function collectLanBundlableDispAssetLeaves() {
+    const byLeaf = new Map();
+    for (const item of state.config.ItemList || []) {
+      const addr = String(item?.image_addr || "").trim();
+      if (!addr) continue;
+      const leaf = basename(addr);
+      if (!leaf) continue;
+      if (/^clock_bg\.(jpe?g|webp)$/i.test(leaf)) continue;
+      const asset = getLocalDispAsset(item);
+      if (!asset?.objectUrl) continue;
+      if (asset.fromLocalPick !== true) continue;
+      if (!byLeaf.has(leaf)) byLeaf.set(leaf, asset);
+    }
+    return byLeaf;
+  }
+
+  function writeTarNumericField(header, offset, length, value) {
+    const n = BigInt(Math.floor(Number(value)));
+    let tmp = `${n.toString(8)}\0`;
+    tmp = tmp.padStart(Number(length), "0");
+    const te = new TextEncoder();
+    const b = te.encode(tmp.slice(-length));
+    header.fill(0, offset, offset + length);
+    header.set(b.slice(-length), offset + length - b.length);
+  }
+
+  function buildTarArchiveBytes(files) {
+    const te = new TextEncoder();
+    const chunks = [];
+    for (const { name, data } of files) {
+      const hdr = new Uint8Array(512);
+      hdr.fill(0);
+      hdr.set(te.encode(String(name).slice(0, 100)), 0);
+      writeTarNumericField(hdr, 100, 8, 0o644);
+      writeTarNumericField(hdr, 108, 8, 0);
+      writeTarNumericField(hdr, 116, 8, 0);
+      writeTarNumericField(hdr, 124, 12, data.length);
+      writeTarNumericField(hdr, 136, 12, Math.floor(Date.now() / 1000));
+      hdr[156] = 48;
+      hdr.set(te.encode("ustar"), 257);
+      hdr[262] = 0;
+      hdr.set(te.encode("00"), 263);
+      hdr.fill(0x20, 148, 156);
+      let sum = 0;
+      for (let i = 0; i < 512; i++) sum += hdr[i];
+      const chStr = `${sum.toString(8)}\0 `;
+      hdr.set(te.encode(chStr.padStart(8)).slice(0, 8), 148);
+
+      chunks.push(hdr, data);
+      const pad = (512 - (data.length % 512)) % 512;
+      if (pad) chunks.push(new Uint8Array(pad));
+    }
+    chunks.push(new Uint8Array(512), new Uint8Array(512));
+    let total = 0;
+    for (const c of chunks) total += c.length;
+    const out = new Uint8Array(total);
+    let o = 0;
+    for (const c of chunks) {
+      out.set(c, o);
+      o += c.length;
+    }
+    return out;
+  }
+
+  async function gzipUint8Array(u8) {
+    if (typeof CompressionStream === "undefined") {
+      throw new Error(t("lan.err.bundleCompressionUnsupported"));
+    }
+    const blob = new Blob([u8]);
+    const cs = new CompressionStream("gzip");
+    return new Response(blob.stream().pipeThrough(cs)).blob();
+  }
+
+  /**
+   * 设备 `/create_local_clock`、`/patch_local_clock` multipart 第二段约定（与固件侧一致）：
+   * - `DialAssets: "image"`：单文件 `clock_bg.jpg`（画布 JPEG；无用户底图时为占位纯色画布）。
+   * - `DialAssets: "bundle"`：`clock_bg.tar.gz`，内含 `clock_bg.jpg` + `ItemList.image_addr` 需上传的叶子（USTAR + gzip）。
+   * - 仅「用户本机选图」(`fromLocalPick`) 的元素打入 tar；模板预载 `.bin` 由设备按内置资源解析，避免无谓 bundle。
+   */
+  function logLanMultipartScenario(tag, dialPack, leafMap) {
+    if (!isLanVerboseDebug()) return;
+    const leaves = leafMap && leafMap.size ? [...leafMap.keys()].join(",") : "";
+    const hasUserBg = !!(state.backgroundImage && state.backgroundImage.complete && state.backgroundImage.naturalWidth > 0);
+    let caseLabel = "1_dial_only";
+    if (leafMap?.size) caseLabel = hasUserBg ? "3_dial_and_element_images" : "2_elements_only_placeholder_dial";
+    const line =
+      `[LAN multipart debug:${tag}] case=${caseLabel} DialAssets=${dialPack.dialAssets} file=${dialPack.multipartFilename}` +
+      ` bytes=${dialPack.blob?.size ?? 0} userBg=${hasUserBg} bundleLeaves=${leaves || "-"}`;
+    try {
+      console.info(line, { leafMap: leaves ? leaves.split(",") : [], dialPack });
+    } catch {
+      /* ignore */
+    }
+    try {
+      fontStore.log(line);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function logLanMultipartMetadata(tag, meta) {
+    if (!isLanVerboseDebug()) return;
+    const sample = (meta.ItemList || []).map((it, i) => `${i}:${String(it.image_addr || "").slice(0, 72)}`);
+    try {
+      console.info(`[LAN JSON debug:${tag}]`, {
+        Command: meta.Command,
+        DialAssets: meta.DialAssets,
+        itemCount: meta.ItemList?.length,
+        imageAddrSample: sample
+      });
+    } catch {
+      /* ignore */
+    }
+    try {
+      fontStore.log(
+        `[LAN JSON debug:${tag}] Command=${meta.Command} DialAssets=${meta.DialAssets} items=${meta.ItemList?.length ?? 0}`
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function resolveLanMultipartDialSecondPart() {
+    const leafMap = collectLanBundlableDispAssetLeaves();
+    if (!leafMap.size) {
+      const blob = await renderDialBackgroundJpegBlobForLanUpload();
+      const pack = { dialAssets: "image", blob, multipartFilename: LAN_MULTIPART_DIAL_FILENAME };
+      logLanMultipartScenario("multipart", pack, leafMap);
+      return pack;
+    }
+    const clockBlob = await renderDialBackgroundJpegBlobForLanUpload();
+    const clockBuf = new Uint8Array(await clockBlob.arrayBuffer());
+    const files = [{ name: "clock_bg.jpg", data: clockBuf }];
+    for (const [leaf, asset] of leafMap) {
+      const res = await fetch(asset.objectUrl);
+      if (!res.ok) throw new Error(t("lan.err.bundleAssetFetchFailed", { name: leaf }));
+      files.push({ name: leaf, data: new Uint8Array(await res.arrayBuffer()) });
+    }
+    const tarBytes = buildTarArchiveBytes(files);
+    const gzBlob = await gzipUint8Array(tarBytes);
+    if (isLanVerboseDebug()) {
+      fontStore.log(
+        t("lan.log.bundleMultipart", {
+          leaves: leafMap.size,
+          tarBytes: tarBytes.length,
+          gzBytes: gzBlob.size
+        })
+      );
+    }
+    const pack = { dialAssets: "bundle", blob: gzBlob, multipartFilename: LAN_MULTIPART_BUNDLE_FILENAME };
+    logLanMultipartScenario("multipart", pack, leafMap);
+    return pack;
+  }
+
   function assertNonEmptyDialImageBlob(blob) {
     if (!blob || blob.size < 256) {
       throw new Error(t("lan.err.invalidDialImage"));
@@ -3765,19 +4035,6 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (Array.isArray(data.ReturnData?.ItemList)) return data.ReturnData.ItemList;
     if (Array.isArray(data.ReturnData?.DeviceClock?.ItemList)) return data.ReturnData.DeviceClock.ItemList;
     return [];
-  }
-
-  /**
-   * 与 MCP `watchface_patch_local` 一致：下发前先读 `GetLocalClockInfo`，当前表盘 ItemList 为空则禁止 PATCH（避免在非可编辑上下文误写）。
-   */
-  async function lanPrecheckEditableClock(patchPayload) {
-    const clockId = toNum(patchPayload.ClockId, 0);
-    const prePayload = clockId > 0 ? { ClockId: clockId } : { UseCurrentDisplayClock: true };
-    const data = await divoomJson("Device/GetLocalClockInfo", prePayload);
-    const items = resolveLanClockItemList(data);
-    if (!items.length) {
-      throw new Error(t("lan.err.precheckEmptyItemList"));
-    }
   }
 
   let lanDebugHistory = [];
@@ -3876,7 +4133,75 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     [LAN_MULTIPART_ENDPOINT.patch]: "Device/PatchLocalClockInfo"
   });
 
-  async function postLanMultipartToDevice(pathSuffix, metadata, imageBlob) {
+  /** 与 divoom_app/tools/mcp-divoom-lan/src/index.ts `buildMultipartTwoParts` 完全一致（固定 boundary、第二段字段名为 Date.now、octet-stream）。 */
+  const LAN_MULTIPART_BOUNDARY_MCP = Object.freeze({
+    [LAN_MULTIPART_ENDPOINT.create]: "----DivoomMcpCreateClockBoundary7YA4YWxkTrZu0gW",
+    [LAN_MULTIPART_ENDPOINT.patch]: "----DivoomMcpPatchClockBoundary7YA4YWxkTrZu0gW"
+  });
+
+  /**
+   * 字节布局同 MCP `buildMultipartTwoParts`：part1 + meta + CRLF + part2 + file + ending。
+   */
+  async function buildLanMultipartWireForDevice(jsonStr, imageBlob, pathSuffix, dialFileName) {
+    assertNonEmptyDialImageBlob(imageBlob);
+    const boundary = LAN_MULTIPART_BOUNDARY_MCP[pathSuffix];
+    if (!boundary) {
+      throw new Error(t("lan.err.multipartUnknownPath", { path: String(pathSuffix) }));
+    }
+    const enc = new TextEncoder();
+    const metaJson = enc.encode(jsonStr);
+    const img = new Uint8Array(await imageBlob.arrayBuffer());
+    if (img.length !== imageBlob.size) {
+      throw new Error(t("lan.err.invalidDialImage"));
+    }
+    const crlf = "\r\n";
+    const filePartName = String(Date.now()).replace(/"/g, "");
+    const safeFn = String(dialFileName || LAN_MULTIPART_DIAL_FILENAME).replace(/"/g, "");
+    const head1 =
+      `--${boundary}${crlf}` +
+      `Content-Disposition: form-data; name="json"; filename="cmd.json"${crlf}` +
+      `Content-Type: application/json${crlf}` +
+      `Content-Length: ${metaJson.length}${crlf}` +
+      crlf;
+    const head2 =
+      `--${boundary}${crlf}` +
+      `Content-Disposition: form-data; name="${filePartName}"; filename="${safeFn}"${crlf}` +
+      `Content-Type: application/octet-stream${crlf}` +
+      `Content-Length: ${img.length}${crlf}` +
+      crlf;
+    const tail = `${crlf}--${boundary}--${crlf}`;
+    const h1b = enc.encode(head1);
+    const h2b = enc.encode(head2);
+    const mid = enc.encode(crlf);
+    const tailb = enc.encode(tail);
+    const totalLen = h1b.length + metaJson.length + mid.length + h2b.length + img.length + tailb.length;
+    const out = new Uint8Array(totalLen);
+    let o = 0;
+    out.set(h1b, o);
+    o += h1b.length;
+    out.set(metaJson, o);
+    o += metaJson.length;
+    out.set(mid, o);
+    o += mid.length;
+    out.set(h2b, o);
+    o += h2b.length;
+    out.set(img, o);
+    o += img.length;
+    out.set(tailb, o);
+    return {
+      bytes: out,
+      contentType: `multipart/form-data; boundary=${boundary}`,
+      filePartName,
+      contentLength: totalLen
+    };
+  }
+
+  async function postLanMultipartToDevice(
+    pathSuffix,
+    metadata,
+    imageBlob,
+    dialFileName = LAN_MULTIPART_DIAL_FILENAME
+  ) {
     const expectedCommand = LAN_MULTIPART_COMMAND_BY_PATH[pathSuffix];
     if (!expectedCommand) {
       throw new Error(t("lan.err.multipartUnknownPath", { path: String(pathSuffix) }));
@@ -3912,9 +4237,10 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       itemIdListLen: Array.isArray(metadata.ItemIdList) ? metadata.ItemIdList.length : 0,
       itemIdListHead: Array.isArray(metadata.ItemIdList) ? metadata.ItemIdList.slice(0, 48) : [],
       jsonUtf8Bytes: enc.encode(jsonStr).length,
-      imageFileName: LAN_MULTIPART_DIAL_FILENAME,
+      imageFileName: dialFileName,
       imageBytes: imageBlob?.size ?? 0,
-      imageMime: imageBlob?.type || ""
+      imageMime: imageBlob?.type || "",
+      multipartWireNote: "mcp-divoom-lan buildMultipartTwoParts (index.ts)"
     };
     fontStore.log(t("lan.log.multipart", { path: pathSuffix, command: metadata.Command }));
     if (isLanVerboseDebug()) {
@@ -3922,13 +4248,26 @@ const LAN_DEBUG_HISTORY_MAX = 12;
         `[LAN verbose] ${pathSuffix} JSON ${entry.jsonUtf8Bytes} B | image ${entry.imageBytes} B\n${jsonStr.slice(0, Math.min(600, jsonStr.length))}${jsonStr.length > 600 ? "…" : ""}`
       );
     }
-    const fd = new FormData();
-    fd.append("json", new Blob([jsonStr], { type: "application/json" }), "cmd.json");
-    fd.append(String(Date.now()), imageBlob, LAN_MULTIPART_DIAL_FILENAME);
+    const { bytes: multipartBytes, contentType: multipartCt, filePartName, contentLength: multipartContentLength } =
+      await buildLanMultipartWireForDevice(jsonStr, imageBlob, pathSuffix, dialFileName);
+    entry.multipartTotalBytes = multipartBytes.length;
+    entry.multipartContentLength = multipartContentLength;
+    entry.multipartBoundary = multipartCt.match(/boundary=([^;]+)/)?.[1] ?? "";
+    entry.multipartFilePartName = filePartName;
     let res;
     let text = "";
     try {
-      res = await fetch(url, buildLanFetchOptions({ method: "POST", body: fd }));
+      res = await fetch(
+        url,
+        buildLanFetchOptions({
+          method: "POST",
+          headers: {
+            "Content-Type": multipartCt,
+            "Content-Length": String(multipartContentLength)
+          },
+          body: multipartBytes
+        })
+      );
       text = await res.text();
     } catch (e) {
       entry.networkError = errorToText(e);
@@ -3968,12 +4307,12 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return data;
   }
 
-  async function divoomCreateMultipart(metadata, imageBlob) {
-    return postLanMultipartToDevice(LAN_MULTIPART_ENDPOINT.create, metadata, imageBlob);
+  async function divoomCreateMultipart(metadata, imageBlob, dialFileName = LAN_MULTIPART_DIAL_FILENAME) {
+    return postLanMultipartToDevice(LAN_MULTIPART_ENDPOINT.create, metadata, imageBlob, dialFileName);
   }
 
-  async function divoomPatchLocalClockMultipart(metadata, imageBlob) {
-    return postLanMultipartToDevice(LAN_MULTIPART_ENDPOINT.patch, metadata, imageBlob);
+  async function divoomPatchLocalClockMultipart(metadata, imageBlob, dialFileName = LAN_MULTIPART_DIAL_FILENAME) {
+    return postLanMultipartToDevice(LAN_MULTIPART_ENDPOINT.patch, metadata, imageBlob, dialFileName);
   }
 
   function extractLanResponseClockId(data) {
@@ -4009,18 +4348,52 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return NaN;
   }
 
-  function openLanCreateNameDialogForDeviceCreate() {
+  function resolveLanDeviceCreateClockName() {
+    let nm = String(getClockDisplayName(state.config) || "").trim();
+    if (nm) return nm;
+    if (activeLocalWatchfaceId) {
+      const rec = getWatchface(activeLocalWatchfaceId);
+      nm = String(rec?.name || "").trim();
+      if (nm) return nm;
+    }
+    return "";
+  }
+
+  function openLanCreateConfirmDialogForDeviceCreate() {
     if (toNum(state.config.ClockId, 0) > 0) return;
     if (!dom.lanCreateDialog?.showModal) {
       alert(t("lan.dialog.missing"));
       return;
     }
-    if (dom.lanCreateName) {
-      dom.lanCreateName.value = getClockDisplayName(state.config) || "";
-      dom.lanCreateName.focus();
-      dom.lanCreateName.select?.();
+    const name = resolveLanDeviceCreateClockName();
+    if (!name) {
+      alert(t("lan.err.emptyName"));
+      return;
     }
+    if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.confirmCreateTitle"));
+    if (dom.lanCreateBody) setNodeText(dom.lanCreateBody, t("lan.dialog.confirmCreateBody", { name }));
     dom.lanCreateDialog.showModal();
+  }
+
+  async function onLanShowCurrentClockOnDeviceClick() {
+    const clockId = toNum(state.config.ClockId, 0);
+    if (clockId <= 0) return;
+    if (!getLanTargetBase()) {
+      alert(t("lan.err.noLanTarget"));
+      return;
+    }
+    const btn = dom.btnLanShowCurrentClockOnDevice;
+    if (btn) btn.disabled = true;
+    try {
+      fontStore.log(t("lan.busy"));
+      await divoomJson("Channel/SetClockSelectId", { ClockId: clockId });
+      fontStore.log(t("lan.success.setClockSelectId", { id: clockId }));
+      alert(t("lan.success.setClockSelectId", { id: clockId }));
+    } catch (e) {
+      alert(errorToText(e));
+    } finally {
+      refreshLanActionButtons();
+    }
   }
 
   async function onLanApplyWatchfaceConfigClick() {
@@ -4033,12 +4406,17 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (btn) btn.disabled = true;
     try {
       fontStore.log(t("lan.busy"));
-      const patchBody = buildPatchPayload();
-      await lanPrecheckEditableClock(patchBody);
-      const meta = buildPatchMultipartMetadata();
-      const blob = await renderDialBackgroundJpegBlobForLanUpload();
-      assertNonEmptyDialImageBlob(blob);
-      await divoomPatchLocalClockMultipart(meta, blob);
+      const patchPayload = await buildLanPatchPayloadMergedForMultipart();
+      const dialPack = await resolveLanMultipartDialSecondPart();
+      assertNonEmptyDialImageBlob(dialPack.blob);
+      const meta = {
+        Command: "Device/PatchLocalClockInfo",
+        ReturnCode: 0,
+        DialAssets: dialPack.dialAssets,
+        ...patchPayload
+      };
+      logLanMultipartMetadata("PatchLocalClockInfo", meta);
+      await divoomPatchLocalClockMultipart(meta, dialPack.blob, dialPack.multipartFilename);
       fontStore.log(t("lan.success.patch"));
       alert(t("lan.success.patch"));
       captureLanBaseline();
@@ -4060,10 +4438,11 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (createBtn) createBtn.disabled = true;
     try {
       fontStore.log(t("lan.busy"));
-      const meta = buildCreateClockMetadata(name);
-      const blob = await renderDialBackgroundJpegBlobForLanUpload();
-      assertNonEmptyDialImageBlob(blob);
-      const data = await divoomCreateMultipart(meta, blob);
+      const dialPack = await resolveLanMultipartDialSecondPart();
+      assertNonEmptyDialImageBlob(dialPack.blob);
+      const meta = { ...buildCreateClockMetadata(name), DialAssets: dialPack.dialAssets };
+      logLanMultipartMetadata("CreateLocalClock", meta);
+      const data = await divoomCreateMultipart(meta, dialPack.blob, dialPack.multipartFilename);
       const createdId = extractLanResponseClockId(data);
       if (Number.isFinite(createdId) && createdId > 0) {
         state.config.ClockId = createdId;
@@ -4198,7 +4577,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (dom.btnLanCreateOnDevice) {
       dom.btnLanCreateOnDevice.addEventListener("click", () => {
         if (dom.btnLanCreateOnDevice.disabled) return;
-        openLanCreateNameDialogForDeviceCreate();
+        openLanCreateConfirmDialogForDeviceCreate();
       });
     }
     if (dom.btnLanApplyWatchfaceConfig) {
@@ -4207,13 +4586,19 @@ const LAN_DEBUG_HISTORY_MAX = 12;
         void onLanApplyWatchfaceConfigClick();
       });
     }
+    if (dom.btnLanShowCurrentClockOnDevice) {
+      dom.btnLanShowCurrentClockOnDevice.addEventListener("click", () => {
+        if (dom.btnLanShowCurrentClockOnDevice.hidden || dom.btnLanShowCurrentClockOnDevice.disabled) return;
+        void onLanShowCurrentClockOnDeviceClick();
+      });
+    }
     if (dom.lanCreateCancel && dom.lanCreateDialog) {
       dom.lanCreateCancel.addEventListener("click", () => dom.lanCreateDialog.close());
     }
     if (dom.lanCreateForm) {
       dom.lanCreateForm.addEventListener("submit", (ev) => {
         ev.preventDefault();
-        const name = String(dom.lanCreateName?.value || "").trim();
+        const name = resolveLanDeviceCreateClockName();
         if (!name) {
           alert(t("lan.err.emptyName"));
           return;

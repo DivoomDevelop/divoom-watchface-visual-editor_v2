@@ -443,6 +443,13 @@ button:disabled {
   gap: 8px;
 }
 
+.local-watch-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .local-watchface-list .local-watch-row-main {
   flex: 1;
   min-width: 0;

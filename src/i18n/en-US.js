@@ -32,6 +32,7 @@ const enUS = Object.freeze({
   "ui.btn.loadSample": "Load Sample Watchface",
   "ui.btn.newWatchface": "New watchface",
   "ui.btn.lanApplyWatchfaceConfig": "Apply watchface config",
+  "ui.btn.lanShowCurrentClockOnDevice": "Show current watchface",
   "ui.btn.lanCreate": "Create New Watchface",
   "ui.btn.lanCopyDebug": "LAN log",
   "ui.btn.lanCopyDebugTitle": "Copy last LAN multipart / diagnostics to clipboard (for bug reports). Console: __DIVOOM_LAN_DEBUG__",
@@ -177,15 +178,19 @@ const enUS = Object.freeze({
   "alert.localAssetLoadFailed": "Local animation load failed: {message}",
 
   "lan.dialog.title": "Push watchface to device",
+  "lan.dialog.missing": "Could not open the confirmation dialog (unexpected page markup).",
+  "lan.dialog.confirmCreateTitle": "Create new watchface on device",
+  "lan.dialog.confirmCreateBody":
+    "Create a new watchface on the device using the saved name \"{name}\"?",
   "lan.dialog.nameLabel": "Watchface name",
   "lan.dialog.cancel": "Cancel",
   "lan.dialog.submit": "Create on device",
-  "lan.dialog.missing": "Could not open the name dialog (unexpected page markup).",
   "lan.err.http": "Device HTTP error {status}: {text}",
   "lan.err.returnCode": "Device returned error code {code}",
   "lan.err.network": "Cannot reach device: {message}. For development run npm run dev or npm run preview and set DIVOOM_LAN_TARGET (e.g. http://192.168.1.5:9000) so /divoom-proxy forwards to the device.",
   "lan.err.emptyItemList": "ItemList is empty; cannot patch safely. Load or switch to an editable watchface first.",
   "lan.err.precheckEmptyItemList": "Device returned an empty ItemList for the current clock (GetLocalClockInfo). Switch to an editable local watchface (e.g. watchface_set_clock_select) before applying; do not auto-create a dial for this case.",
+  "lan.err.noLanTarget": "Select a device in「LAN device」above, or set LAN target for the proxy.",
   "lan.err.emptyName": "Enter a watchface name.",
   "lan.err.invalidDialImage":
     "Could not build a dial background image for upload (empty or too small). Try reloading the background or clear and pick it again.",
@@ -195,6 +200,12 @@ const enUS = Object.freeze({
   "lan.err.multipartCommandMismatch":
     "Internal error: multipart {path} expects JSON Command {expected}, got {actual}. Report this if it appears after a normal action.",
   "lan.log.multipart": "LAN multipart: POST {path} — JSON Command: {command}",
+  "lan.log.bundleMultipart":
+    "LAN multipart: DialAssets=bundle gzip tar ({leaves} packed assets, tar {tarBytes} B → gz {gzBytes} B).",
+  "lan.err.bundleCompressionUnsupported":
+    "This browser has no CompressionStream (gzip), cannot pack dial assets for LAN. Use a recent Chrome, Edge, or Safari.",
+  "lan.err.bundleAssetFetchFailed":
+    "LAN bundle failed: could not read binary for \"{name}\" (objectUrl). Reload the template or re-pick the local image.",
   "lan.debug.copied": "LAN diagnostics copied to clipboard. Paste into chat or a text file.",
   "lan.debug.copiedLog": "LAN diagnostics copied to clipboard.",
   "lan.debug.copyFailed": "Could not write clipboard (browser blocked?). Full dump was printed to DevTools console (F12).",
@@ -202,6 +213,7 @@ const enUS = Object.freeze({
   "lan.debug.afterFailureHint":
     "Auto-debug: last request summary is in the log panel above and in the console (F12); clipboard may contain the last JSON record if the browser allowed it. Use「LAN log」to copy the full history anytime.",
   "lan.success.patch": "Watchface config was sent to the device over LAN.",
+  "lan.success.setClockSelectId": "Device display clock set to ClockId {id} (Channel/SetClockSelectId).",
   "lan.success.createClockIdApplied": "Created on device; saved ClockId {id} into this configuration.",
   "lan.success.create": "Create-local-clock succeeded, but the response contained no usable ClockId. Confirm on the device or use Apply watchface config again.",
   "lan.busy": "Talking to device…",
@@ -210,7 +222,7 @@ const enUS = Object.freeze({
   "lan.device.listFailed": "Failed to load device list: {message}",
 
   "localWatch.listEmpty": "No saved designs yet. Name and save to add one.",
-  "localWatch.listHint": "Click to open; × to delete. Named drafts autosave while editing.",
+  "localWatch.listHint": "Click to open; rows pushed to a device (with ClockId) show Copy to duplicate (you enter a new name); × deletes. Open designs autosave.",
   "localWatch.savedAs": "Saved to My designs: {name}",
   "localWatch.loaded": "Opened from My designs: {name}",
   "localWatch.newBlank": "New blank design",
@@ -233,6 +245,13 @@ const enUS = Object.freeze({
   "localWatch.dialog.bodyNew": "Pick a name for the new watchface. Later edits autosave to this entry.",
   "localWatch.dialog.save": "Save",
   "localWatch.dialog.create": "Create",
+  "localWatch.duplicateBtn": "Copy",
+  "localWatch.duplicateAria": "Duplicate as a local copy (no device ClockId)",
+  "localWatch.dialog.titleDuplicate": "Duplicate design",
+  "localWatch.dialog.bodyDuplicate":
+    "Create a copy from \"{name}\" as a new entry. Enter a new watchface name (ClockId is cleared; create or push again on the device).",
+  "localWatch.dialog.duplicateConfirm": "Duplicate",
+  "localWatch.duplicatedAs": "Duplicated and opened: {name}",
 
   "log.configApplied": "Config applied: {source}",
   "log.sampleLoadFailed": "Sample config path unavailable.",
