@@ -202,6 +202,8 @@ const zhCN = Object.freeze({
     "LAN multipart：使用 DialAssets=bundle，gzip tar（元素素材 {leaves} 个，tar {tarBytes} B → gz {gzBytes} B）。",
   "lan.err.bundleCompressionUnsupported": "当前浏览器不支持 CompressionStream（gzip），无法打包元素素材下发，请换用新版 Chrome / Edge / Safari。",
   "lan.err.bundleAssetFetchFailed": "打包 LAN 素材失败：无法读取「{name}」的二进制（objectUrl）。请重新加载模板或重新选择本地图片。",
+  "lan.log.createImageAddrStripped":
+    "已自动清理 {count} 个无法本地打包的元素 image_addr（多见于模板预载资源未在仓库内），避免设备返回 “bundle element file missing”。",
   "lan.debug.copied": "已将 LAN 诊断信息复制到剪贴板，可粘贴到对话或文本文件。",
   "lan.debug.copiedLog": "已复制 LAN 诊断到剪贴板。",
   "lan.debug.copyFailed": "无法写入剪贴板（浏览器可能拦截）。完整内容已输出到开发者工具控制台（F12）。",

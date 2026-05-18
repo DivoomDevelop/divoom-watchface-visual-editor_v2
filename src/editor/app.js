@@ -4272,7 +4272,12 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     const leafMap = externalLeafMap !== null ? externalLeafMap : collectLanBundlableDispAssetLeaves();
     if (!leafMap.size) {
       const blob = await renderDialBackgroundJpegBlobForLanUpload();
-      const pack = { dialAssets: "image", blob, multipartFilename: LAN_MULTIPART_DIAL_FILENAME };
+      const pack = {
+        dialAssets: "image",
+        blob,
+        multipartFilename: LAN_MULTIPART_DIAL_FILENAME,
+        leafSet: new Set()
+      };
       logLanMultipartScenario("multipart", pack, leafMap);
       return pack;
     }
@@ -4297,9 +4302,50 @@ const LAN_DEBUG_HISTORY_MAX = 12;
         })
       );
     }
-    const pack = { dialAssets: "bundle", blob: gzBlob, multipartFilename: LAN_MULTIPART_BUNDLE_FILENAME };
+    const pack = {
+      dialAssets: "bundle",
+      blob: gzBlob,
+      multipartFilename: LAN_MULTIPART_BUNDLE_FILENAME,
+      leafSet: new Set(leafMap.keys())
+    };
     logLanMultipartScenario("multipart", pack, leafMap);
     return pack;
+  }
+
+  /**
+   * 在把 ItemList 写入 LAN multipart JSON 之前，按真实进入 tar 的叶子集合 `packedLeafSet`
+   * 校验每个 `image_addr`：
+   *  - 空字符串或 `http(s)://...` URL → 保留原样（云端资源/无图槽位）
+   *  - 叶子名命中 `packedLeafSet` → 仅保留 basename（与 tar 内文件名严格对齐）
+   *  - 否则 → 清空为 `""`，避免设备触发 `bundle element file missing`
+   * 这种"模板预载叶子在本机不可用"的情况会在创建/整表替换路径里出现：模板原本引用了
+   * `(image_id+1).bin` 之类资源，但本仓库 `public/template/29/...` 没有对应文件，
+   * 编辑器拿不到字节就不会塞进 tar.gz。
+   */
+  function sanitizeItemListImageAddrForLanUpload(items, packedLeafSet) {
+    const stripped = [];
+    const sanitized = (items || []).map((raw, index) => {
+      const item = { ...raw };
+      const addr = String(item.image_addr || "").trim();
+      if (!addr) return item;
+      if (/^https?:\/\//i.test(addr)) return item;
+      const leaf = basename(addr);
+      if (leaf && packedLeafSet && packedLeafSet.has(leaf)) {
+        item.image_addr = leaf;
+        return item;
+      }
+      if (leaf) stripped.push({ index, leaf });
+      item.image_addr = "";
+      return item;
+    });
+    if (stripped.length && isLanVerboseDebug()) {
+      const head = stripped.slice(0, 8).map((e) => `#${e.index}:${e.leaf}`).join(", ");
+      fontStore.log(
+        `[LAN sanitize] dropped image_addr for ${stripped.length} item(s) absent from tar: ${head}` +
+          (stripped.length > 8 ? ` …(+${stripped.length - 8})` : "")
+      );
+    }
+    return { items: sanitized, stripped };
   }
 
   function assertNonEmptyDialImageBlob(blob) {
@@ -4752,16 +4798,24 @@ const LAN_DEBUG_HISTORY_MAX = 12;
         const fullReplaceLeafMap = collectLanBundlableDispAssetLeaves();
         const dialPack = await resolveLanMultipartDialSecondPart();
         assertNonEmptyDialImageBlob(dialPack.blob);
+        const sanitizedFull = sanitizeItemListImageAddrForLanUpload(merged, dialPack.leafSet);
+        if (sanitizedFull.stripped.length) {
+          fontStore.log(
+            t("lan.log.createImageAddrStripped", {
+              count: sanitizedFull.stripped.length
+            })
+          );
+        }
         const meta = {
           Command: "Device/PatchLocalClockInfo",
           ReturnCode: 0,
           DialAssets: dialPack.dialAssets,
           ...clockSel,
-          ItemList: merged.map((item) => ({ ...item })),
+          ItemList: sanitizedFull.items,
           ItemIdList: [...state.config.ItemIdList]
         };
         const itemPatchListForBinding = [];
-        merged.forEach((it, idx) => {
+        sanitizedFull.items.forEach((it, idx) => {
           const addr = String(it?.image_addr || "").trim();
           if (!addr || /^https?:\/\//i.test(addr)) return;
           const leaf = basename(addr);
@@ -4825,7 +4879,20 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       fontStore.log(t("lan.busy"));
       const dialPack = await resolveLanMultipartDialSecondPart();
       assertNonEmptyDialImageBlob(dialPack.blob);
-      const meta = { ...buildCreateClockMetadata(name), DialAssets: dialPack.dialAssets };
+      const baseMeta = buildCreateClockMetadata(name);
+      const sanitized = sanitizeItemListImageAddrForLanUpload(baseMeta.ItemList, dialPack.leafSet);
+      const meta = {
+        ...baseMeta,
+        ItemList: sanitized.items,
+        DialAssets: dialPack.dialAssets
+      };
+      if (sanitized.stripped.length) {
+        fontStore.log(
+          t("lan.log.createImageAddrStripped", {
+            count: sanitized.stripped.length
+          })
+        );
+      }
       logLanMultipartMetadata("CreateLocalClock", meta);
       const data = await divoomCreateMultipart(meta, dialPack.blob, dialPack.multipartFilename);
       const createdId = extractLanResponseClockId(data);

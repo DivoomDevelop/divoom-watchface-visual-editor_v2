@@ -207,6 +207,8 @@ const enUS = Object.freeze({
     "This browser has no CompressionStream (gzip), cannot pack dial assets for LAN. Use a recent Chrome, Edge, or Safari.",
   "lan.err.bundleAssetFetchFailed":
     "LAN bundle failed: could not read binary for \"{name}\" (objectUrl). Reload the template or re-pick the local image.",
+  "lan.log.createImageAddrStripped":
+    "Auto-cleared image_addr for {count} item(s) whose template asset is not present locally; prevents the device \"bundle element file missing\" rejection.",
   "lan.debug.copied": "LAN diagnostics copied to clipboard. Paste into chat or a text file.",
   "lan.debug.copiedLog": "LAN diagnostics copied to clipboard.",
   "lan.debug.copyFailed": "Could not write clipboard (browser blocked?). Full dump was printed to DevTools console (F12).",
