@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-14T10:58:52.649Z",
+  "generatedAt": "2026-05-18T01:57:32.446Z",
   "sourceFile": "src/editor/app.js (DISP_NAME_MAP)",
   "summary": {
-    "count": 190
+    "count": 194
   },
   "rulesForModels": [
     "disp is the render/driver kind for an item (time slice, image slot, text, etc.).",
@@ -1718,6 +1718,42 @@
       "hints": {
         "likelyUsesRasterOrAssetLayer": true,
         "oftenUsesVectorFontForText": false,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 406,
+      "name": "HOUR_DECADE",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": true,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 407,
+      "name": "HOUR_UNIT",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": true,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 408,
+      "name": "MIN_DECADE",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": true,
+        "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
+      }
+    },
+    {
+      "disp": 409,
+      "name": "MIN_UNIT",
+      "hints": {
+        "likelyUsesRasterOrAssetLayer": false,
+        "oftenUsesVectorFontForText": true,
         "note": "Heuristic only; firmware may differ. Validate in editor preview when unsure."
       }
     }
