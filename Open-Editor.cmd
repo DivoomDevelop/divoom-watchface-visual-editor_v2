@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM Usage: see README.md section "Windows: one-click launch (English)".
 REM
 REM 重要：若仓库里已经有 dist 文件夹，本脚本默认不会再执行 npm run build，
@@ -8,7 +9,6 @@ REM   - 强制重新打包并预览:  Open-Editor.cmd rebuild
 REM   - 开发时热更新（推荐）: 运行 Open-Editor-Dev.cmd，或手动 npm run dev
 REM
 REM 依赖：若本机无 npm / 无 node_modules / 无 Python，将尽力通过 winget 自动安装（需联网，可能弹出 UAC）。
-chcp 65001 >nul
 setlocal EnableExtensions
 cd /d "%~dp0"
 set PORT=8765

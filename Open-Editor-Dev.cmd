@@ -1,7 +1,7 @@
 @echo off
+chcp 65001 >nul
 REM 开发预览：Vite 直接编译 src，改代码后刷新页面即可看到最新逻辑。
 REM 若本机无 npm 或无 node_modules，将尽力通过 winget 安装 Node、再执行 npm install。
-chcp 65001 >nul
 setlocal EnableExtensions
 cd /d "%~dp0"
 set PORT=8765
