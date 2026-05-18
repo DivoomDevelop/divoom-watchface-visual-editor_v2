@@ -231,7 +231,11 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     352: "ROT_IMG_EFFECT_4",
     260: "WEBP_FULL_WEATHER",
     261: "DIAL_COMPONENT_START",
-    279: "DIAL_COMPONENT_END"
+    279: "DIAL_COMPONENT_END",
+    406: "HOUR_DECADE",
+    407: "HOUR_UNIT",
+    408: "MIN_DECADE",
+    409: "MIN_UNIT"
   });
 
   const DISP_COMMENT_ZH_MAP = Object.freeze({
@@ -422,7 +426,11 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     352: "图像旋转效果4（单图 ROT_IMG / mul_flag=0）",
     260: "webp全屏天气，10张图",
     261: "子表盘组件开始ID",
-    279: "子表盘组件结束ID"
+    279: "子表盘组件结束ID",
+    406: "时间小时十位（数字 0~2，仅取小时高位）",
+    407: "时间小时个位（数字 0~9，仅取小时低位）",
+    408: "时间分钟十位（数字 0~5，仅取分钟高位）",
+    409: "时间分钟个位（数字 0~9，仅取分钟低位）"
   });
 
   const IMAGE_DISP_IDS = new Set([
@@ -883,11 +891,17 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return "-";
   }
 
-  function inferImageFormat(fileName, mimeType) {
-    const name = String(fileName || "").toLowerCase();
-    const mime = String(mimeType || "").toLowerCase();
-    if (mime.includes("gif") || name.endsWith(".gif")) return "gif";
-    if (mime.includes("webp") || name.endsWith(".webp")) return "webp";
+  /**
+   * 由 MIME 推断栅格资源类别（与文件名后缀无关）。
+   * `localPick: true` 时仅限用户本机选用的 JPG / WEBP / GIF（与设备常用下发格式一致）。
+   */
+  function inferRasterFormatFromMime(mimeType, opts = {}) {
+    const localPick = opts.localPick === true;
+    const m = String(mimeType || "").split(";")[0].trim().toLowerCase();
+    if (m === "image/gif") return "gif";
+    if (m === "image/webp") return "webp";
+    if (m === "image/jpeg" || m === "image/jpg") return "jpeg";
+    if (!localPick && m === "image/png") return "png";
     return "";
   }
 
@@ -964,9 +978,6 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   }
 
   function inferImageMimeFromBuffer(buf, fileName = "", mimeHint = "") {
-    const mime = String(mimeHint || "").split(";")[0].trim().toLowerCase();
-    if (mime.startsWith("image/")) return mime;
-
     const bytes = new Uint8Array(buf);
     if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
     if (
@@ -987,12 +998,9 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (bytes.length >= 12 && readAscii(bytes, 0, 4) === "RIFF" && readAscii(bytes, 8, 4) === "WEBP") return "image/webp";
     if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) return "image/bmp";
 
-    const lower = String(fileName || "").toLowerCase();
-    if (lower.endsWith(".png")) return "image/png";
-    if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-    if (lower.endsWith(".gif")) return "image/gif";
-    if (lower.endsWith(".webp")) return "image/webp";
-    if (lower.endsWith(".bmp")) return "image/bmp";
+    const mime = String(mimeHint || "").split(";")[0].trim().toLowerCase();
+    if (mime.startsWith("image/")) return mime;
+
     return "application/octet-stream";
   }
 
@@ -1006,30 +1014,38 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   }
 
   async function loadLocalAssetFromFile(file) {
-    const fmt = inferImageFormat(file?.name, file?.type);
-    if (!fmt) throw new Error(t("editor.asset.formatError"));
-    const mimeType = String(file.type || `image/${fmt}`);
     const buf = await file.arrayBuffer();
+    const mimeType = inferImageMimeFromBuffer(buf, file?.name || "", file?.type || "");
+    const fmt = inferRasterFormatFromMime(mimeType, { localPick: true });
+    if (!fmt) throw new Error(t("editor.asset.formatError"));
+    const normalizedMime = mimeType.startsWith("image/")
+      ? mimeType
+      : `image/${fmt === "jpeg" ? "jpeg" : fmt}`;
     let frameCount = null;
     try {
       if (fmt === "gif") frameCount = parseGifFrameCount(buf);
       else if (fmt === "webp") frameCount = parseWebpFrameCount(buf);
+      else if (fmt === "jpeg") frameCount = 1;
     } catch (e) {
       frameCount = null;
     }
-    const objectUrl = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(new Blob([buf], { type: normalizedMime }));
     try {
       const image = await loadImageByObjectUrl(objectUrl);
-      const decodedFrames = await tryDecodeAnimationFrames(buf, mimeType);
+      const decodedFrames = await tryDecodeAnimationFrames(buf, normalizedMime);
       const finalFrameCount = Number.isFinite(frameCount)
         ? frameCount
-        : (decodedFrames.length ? decodedFrames.length : null);
+        : (decodedFrames.length
+          ? decodedFrames.length
+          : fmt === "gif" || fmt === "webp"
+            ? null
+            : 1);
       return {
         name: String(file.name || ""),
         fromLocalPick: true,
         sourceUrl: "",
         size: toNum(file.size, 0),
-        mimeType,
+        mimeType: normalizedMime,
         format: fmt,
         frameCount: finalFrameCount,
         frames: decodedFrames,
@@ -1078,7 +1094,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       }
     })();
     const mimeType = inferImageMimeFromBuffer(buf, parsedName, mimeHint);
-    const format = inferImageFormat(parsedName, mimeType);
+    const format = inferRasterFormatFromMime(mimeType, { localPick: false });
     const blob = mimeType === "application/octet-stream"
       ? new Blob([buf])
       : new Blob([buf], { type: mimeType });
@@ -1088,6 +1104,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       let frameCount = null;
       if (format === "gif") frameCount = parseGifFrameCount(buf);
       else if (format === "webp") frameCount = parseWebpFrameCount(buf);
+      else if (format === "jpeg" || format === "png") frameCount = 1;
       const decodedFrames = await tryDecodeAnimationFrames(buf, mimeType);
       const finalFrameCount = Number.isFinite(frameCount)
         ? frameCount
@@ -1437,12 +1454,26 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return { data: null, path: "", via: "" };
   }
 
+  /** 将 `alig` 转为 canvas `textAlign` 语义；设备值为 `3/4/5`，兼容旧编辑器 `1/2/3`。 */
   function guessAlign(value) {
     const v = toNum(value, 0);
-    if (v === 1 || v === 0) return "left";
-    if (v === 2) return "right";
+    if (v === 4 || v === 1 || v === 0) return "left";
+    if (v === 5 || v === 2) return "right";
     if (v === 3) return "center";
     return "left";
+  }
+
+  /**
+   * 设备 AlignType：`3` 居中，`4` 左对齐，`5` 右对齐。
+   * 旧版编辑器使用 `1` 左、`2` 右、`3` 中 —— 加载时升级为 `4/5/3`。
+   */
+  function normalizeAligToDevice(v) {
+    const n = toNum(v, NaN);
+    if (!Number.isFinite(n)) return DEFAULT_ITEM.alig;
+    if (n === 3 || n === 4 || n === 5) return n;
+    if (n === 1 || n === 0) return 4;
+    if (n === 2) return 5;
+    return DEFAULT_ITEM.alig;
   }
 
   function dispName(disp) {
@@ -1468,6 +1499,11 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     ["分钟", "minute"],
     ["小时", "hour"],
     ["秒钟", "second"],
+    ["十位", "tens digit"],
+    ["个位", "units digit"],
+    ["高位", "high digit"],
+    ["低位", "low digit"],
+    ["仅取", "uses only"],
     ["时间", "time "],
     ["秒", "second"],
     ["数字", "number"],
@@ -2030,6 +2066,9 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     lanCreateCancel: byId("lan-create-cancel"),
     lanCreateSubmit: byId("lan-create-submit"),
     lanCreateTitle: byId("lan-create-title"),
+    lanMessageDialog: byId("lan-message-dialog"),
+    lanMessageDialogBody: byId("lan-message-dialog-body"),
+    lanMessageDialogOk: byId("lan-message-dialog-ok"),
     localSaveNamedDialog: byId("local-save-named-dialog"),
     localSaveNamedTitle: byId("local-save-named-title"),
     localSaveNamedBody: byId("local-save-named-body"),
@@ -2127,6 +2166,30 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   const photoAlbumPreviewItemState = new WeakMap();
 
   let lanBaselineSignature = "";
+  /** 上次 captureLanBaseline 时的背景名，用于在 PATCH 时判断 dial 底图是否需要重传。 */
+  let lanBaselineBgName = "";
+
+  /**
+   * 设备 PATCH（`wf_apply_item_patch` in `divoom_watchface_local_api.c`）允许按字段级补丁的列表。
+   * 这里只列固件实际识别的字段；其它字段（如 `frameCount`）不会被设备读取，避免误发。
+   */
+  const LAN_PATCH_NUMBER_FIELDS = Object.freeze([
+    "size",
+    "x",
+    "y",
+    "w",
+    "h",
+    "disp",
+    "alig",
+    "sep",
+    "font",
+    "image_id",
+    "angle",
+    "hier",
+    "transp",
+    "animation"
+  ]);
+  const LAN_PATCH_HEX_COLOR_FIELDS = Object.freeze(["color_1", "color_2"]);
 
   /** 「我的设计」当前条目 id（空 = 未绑定已命名保存） */
   let activeLocalWatchfaceId = "";
@@ -2139,6 +2202,8 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   /** 左侧：`local`=可编辑本地；`template`=仅浏览内置模板预览 */
   let sidebarBrowseMode = "local";
   let templateListNavTimer = 0;
+  /** 模板模式下按预览区尺寸自动缩放画布 */
+  let previewStageResizeObs = null;
 
   function syncWorkspaceBaseline() {
     workspaceBaselineSig = getLanDirtySnapshot();
@@ -2576,6 +2641,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (dom.lanCreateTitle) setNodeText(dom.lanCreateTitle, t("lan.dialog.confirmCreateTitle"));
     if (dom.lanCreateCancel) setNodeText(dom.lanCreateCancel, t("lan.dialog.cancel"));
     if (dom.lanCreateSubmit) setNodeText(dom.lanCreateSubmit, t("lan.dialog.submit"));
+    if (dom.lanMessageDialogOk) setNodeText(dom.lanMessageDialogOk, t("lan.dialog.ok"));
 
     setNodeText(dom.btnAddItem, t("ui.btn.add"));
     setNodeText(dom.btnDupItem, t("ui.btn.dup"));
@@ -2653,7 +2719,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     item.y = toNum(item.y, 0);
     item.w = toNum(item.w, 100);
     item.h = toNum(item.h, 40);
-    item.alig = toNum(item.alig ?? item.align, 0);
+    item.alig = normalizeAligToDevice(item.alig ?? item.align);
     item.sep = toNum(item.sep, 0);
     item.angle = toNum(item.angle, 0);
     item.hier = toNum(item.hier, 0);
@@ -2665,13 +2731,14 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   }
 
   /**
-   * 设备侧 ItemIdList 与 ItemList[].item_id 一一对应；`item_id` 允许为 ""（常见模板），
-   * 不可使用 `x || fallback` 把空串误判为缺失。
+   * 设备固件 `divoom_watchface_local_api.c` 第 1534 行：`NEED_STR("item_id")` —— 每条 ItemList
+   * 的 `item_id` 必须是**非空字符串**，否则 CreateLocalClock / PatchLocalClockInfo 直接报
+   * `ItemList[i]: missing or empty string "item_id"`。模板里常见空串需在下发前补默认值。
    */
   function itemIdListEntryForLan(it, idx) {
-    const id = it?.item_id;
-    if (id === undefined || id === null) return `item_${idx + 1}`;
-    return String(id);
+    const raw = it?.item_id;
+    const s = raw === undefined || raw === null ? "" : String(raw);
+    return s.length > 0 ? s : `item_${idx + 1}`;
   }
 
   function normalizeConfig(raw) {
@@ -2710,8 +2777,20 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return cfg && typeof cfg === "object" ? toNum(cfg.ClockId, 0) : 0;
   }
 
+  /**
+   * 同时回写 ItemList[].item_id：固件不仅校验顶层 ItemIdList 数组，还会按位置读取每个 ItemList
+   * 条目自身的 `item_id` 字段，两者均必须非空。
+   */
   function syncItemIdList() {
-    state.config.ItemIdList = state.config.ItemList.map((it, idx) => itemIdListEntryForLan(it, idx));
+    const ids = state.config.ItemList.map((it, idx) => itemIdListEntryForLan(it, idx));
+    state.config.ItemIdList = ids;
+    state.config.ItemList.forEach((it, idx) => {
+      if (!it) return;
+      const want = ids[idx];
+      const cur = it.item_id;
+      const curStr = cur === undefined || cur === null ? "" : String(cur);
+      if (curStr.length === 0) it.item_id = want;
+    });
   }
 
   /** UI 为简体中文时读取中文名；其余语言（含繁体、英语等）模板/表盘名称统一以英文为主。 */
@@ -2962,7 +3041,18 @@ const LAN_DEBUG_HISTORY_MAX = 12;
 
   function captureLanBaseline() {
     lanBaselineSignature = getLanDirtySnapshot();
+    lanBaselineBgName = String(state.backgroundName || "");
     refreshLanActionButtons();
+  }
+
+  /** 用户是否在自上次 baseline 后换过 dial 底图（按 `state.backgroundName` 比对）。 */
+  function isLanBackgroundDirtyAgainstBaseline() {
+    return String(state.backgroundName || "") !== String(lanBaselineBgName || "");
+  }
+
+  /** 顶部下拉是否已选具体设备（`value=""` 占位符视为未选）。 */
+  function isLanDeviceSelectedInUi() {
+    return Boolean(dom.selectLanDevice && String(dom.selectLanDevice.value || "").trim());
   }
 
   function refreshLanActionButtons() {
@@ -2970,10 +3060,20 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     const createBtn = dom.btnLanCreateOnDevice;
     const showClockBtn = dom.btnLanShowCurrentClockOnDevice;
     const hasClockId = toNum(state.config?.ClockId, 0) > 0;
+    const hasLanDevice = isLanDeviceSelectedInUi();
     if (sidebarBrowseMode === "template") {
       if (applyBtn) applyBtn.disabled = true;
       if (createBtn) createBtn.disabled = true;
       if (showClockBtn) showClockBtn.hidden = true;
+      return;
+    }
+    if (!hasLanDevice) {
+      if (applyBtn) applyBtn.disabled = true;
+      if (createBtn) createBtn.disabled = true;
+      if (showClockBtn) {
+        showClockBtn.hidden = !hasClockId;
+        showClockBtn.disabled = true;
+      }
       return;
     }
     const dirty = getLanDirtySnapshot() !== lanBaselineSignature;
@@ -3750,12 +3850,12 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   }
 
   /**
-   * 设备 PATCH 会整表替换 ItemList；编辑器里常见 image_addr 仍是模板叶子名（如 142110.bin），
-   * 而设备侧已是上传后的 http(s) URL。multipart 第二段只刷新整表 dial 图，不会逐个修元素 URL，
-   * 故下发前用 GetLocalClockInfo 按索引把「本地叶子名」合并回设备 URL，避免只改字体等字段却把图元引用破坏。
+   * 设备 PATCH 会整表替换 ItemList；编辑器里常见 `image_addr` 仍是叶子名（模板 `.bin` 或用户选图），
+   * 而设备侧已是上传后的 http(s) URL。multipart 第二段只刷新 dial / bundle，不会逐个修元素 URL，
+   * 故下发前用 GetLocalClockInfo 把「设备已托管的 URL」合并回来，避免只改字体却把图元引用破坏。
    *
-   * 例外：用户在本机为该项「选择文件」替换素材（`fromLocalPick`）时，必须保留编辑器里的文件名，
-   * 以便与 gzip tar 中的叶子名一致；不得写回设备旧 URL，否则会与第二段上传内容不一致。
+   * 例外：编辑器内存里已加载到该项资源字节（`getLocalDispAsset(it).objectUrl`），说明会随 tar 上传，
+   * 必须保留编辑器侧的叶子名以与 tar 内文件名对齐——无论是用户选图还是模板预载。
    */
   function mergeItemListImageAddrForLanPatch(editorItems, deviceItems) {
     if (!Array.isArray(editorItems)) return editorItems;
@@ -3764,8 +3864,8 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     return editorItems.map((ed, idx) => {
       const merged = { ...ed };
       if (idx >= n) return merged;
-      const userPicked = getLocalDispAsset(ed)?.fromLocalPick === true;
-      if (userPicked) return merged;
+      const willBundleLeaf = !!getLocalDispAsset(ed)?.objectUrl;
+      if (willBundleLeaf) return merged;
       const dev = deviceItems[idx];
       const edImg = String(merged.image_addr ?? "").trim();
       const devImg = String(dev?.image_addr ?? dev?.img_addr ?? "").trim();
@@ -3796,6 +3896,84 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       ItemList: mergedItemList.map((item) => ({ ...item })),
       ItemIdList: [...state.config.ItemIdList]
     };
+  }
+
+  /**
+   * 把单个 hex 颜色规范化成 `#RRGGBB`（小写）以便与设备返回值做严格比较。
+   * 设备 `wf_apply_item_patch` 用 `sscanf("#%x")` 解析，对大小写不敏感，但比较时统一规范化能避免 JSON
+   * 里写成 `#FFffFF` 等导致误判为「已变更」。
+   */
+  function normalizeHexColorForLanPatch(hex) {
+    const s = ensureColorHex(String(hex ?? ""), "#000000");
+    return s.toLowerCase();
+  }
+
+  /**
+   * 比较编辑器侧 `ItemList[i]` 与设备拉到的 `deviceItems[i]`，构造最小 `ItemPatchList[i].patch`。
+   *
+   * - 仅包含 `wf_apply_item_patch` 真实可识别的字段。
+   * - `image_addr` 只在「编辑器持有该项字节」（即 `bundle_image` 同时设置）或编辑器把它改成新的明确字符串时才下发；
+   *   纯模板叶子 vs 设备 http URL 的差异（仅渲染口味不同）不算变更，避免破坏设备已托管的图。
+   * - **不下发 `item_id`**：设备侧 `item_id` 用于菜单 / config 关联（例如 `divoom_app_com_get_int_from_config`），
+   *   误改会破坏 dial。编辑器的 `syncItemIdList` 仅为满足 CREATE 的 `NEED_STR` 校验生成默认值，
+   *   不应该作为 PATCH 的覆盖依据。
+   *
+   * 返回 `null` 表示该项无任何字段差异（不需要 patch）。
+   */
+  function computeSingleItemPatch(editorItem, deviceItem, leafMap) {
+    if (!editorItem) return null;
+    const patch = {};
+
+    for (const k of LAN_PATCH_NUMBER_FIELDS) {
+      const eRaw = k === "disp" ? editorItem.disp ?? editorItem.type : editorItem[k];
+      const dRaw = k === "disp" ? deviceItem?.disp ?? deviceItem?.type : deviceItem?.[k];
+      const eVal = toNum(eRaw, 0);
+      const dVal = toNum(dRaw, 0);
+      if (eVal !== dVal) patch[k] = eVal;
+    }
+
+    for (const k of LAN_PATCH_HEX_COLOR_FIELDS) {
+      const eVal = normalizeHexColorForLanPatch(editorItem[k]);
+      const dVal = normalizeHexColorForLanPatch(deviceItem?.[k]);
+      if (eVal !== dVal) patch[k] = eVal;
+    }
+
+    const edImg = String(editorItem.image_addr ?? "").trim();
+    const devImg = String(deviceItem?.image_addr ?? deviceItem?.img_addr ?? "").trim();
+    const edLeaf = edImg.length > 0 && !/^https?:\/\//i.test(edImg) ? basename(edImg) : "";
+    const willBundleThisItem = !!(edLeaf && leafMap?.has?.(edLeaf));
+    if (willBundleThisItem) {
+      patch.bundle_image = edLeaf;
+      patch.image_addr = edLeaf;
+    } else {
+      const editorIsHttpUrl = /^https?:\/\//i.test(edImg);
+      if (editorIsHttpUrl && edImg !== devImg) {
+        patch.image_addr = edImg;
+      } else if (edImg.length === 0 && devImg.length > 0) {
+        patch.image_addr = "";
+      }
+    }
+
+    return Object.keys(patch).length > 0 ? patch : null;
+  }
+
+  /**
+   * 计算用于 `Device/PatchLocalClockInfo` 的 `ItemPatchList`。
+   * 长度不一致（用户增删项）时返回 `lengthMismatch=true`，外层应回退到整表替换。
+   */
+  function computeLanItemPatchList(editorItems, deviceItems, leafMap) {
+    if (!Array.isArray(editorItems) || !Array.isArray(deviceItems)) {
+      return { patches: [], lengthMismatch: true };
+    }
+    if (editorItems.length !== deviceItems.length) {
+      return { patches: [], lengthMismatch: true };
+    }
+    const patches = [];
+    for (let i = 0; i < editorItems.length; i++) {
+      const patch = computeSingleItemPatch(editorItems[i], deviceItems[i], leafMap);
+      if (patch) patches.push({ index: i, patch });
+    }
+    return { patches, lengthMismatch: false };
   }
 
   function buildCreateClockMetadata(clockName) {
@@ -3852,15 +4030,45 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   }
 
   /**
-   * 仅把「用户在本机选择/替换过的元素图」打入 gzip tar（`fromLocalPick`）。
-   * 模板预加载的 `.bin`（`loadLocalAssetFromUrl`，fromLocalPick=false）不打包，避免「只有用户底图」却仍走 DialAssets=bundle + tar，设备端解压/绑定异常；
-   * 新建表盘时模板叶子名一般由设备侧已有资源解析（与仅下发 dial JPEG 的旧行为一致）。
+   * 收集所有「需要随表盘上传」的元素图叶子名（`ItemList[i].image_addr` 非空且非 http URL）。
+   *
+   * 设计要点（与设备固件解析一致）：
+   *  - 设备通过 `wf_bundle_find_clock_bg` 等流程从 tar 内按叶子名读元素文件；JSON 里 `image_addr`
+   *    必须与 tar 内文件名一一对应。
+   *  - 不区分模板预载（`loadLocalAssetFromUrl`，`fromLocalPick=false`）还是用户本机选图：
+   *    只要编辑器在内存里加载到了字节并且 `image_addr` 是个本地叶子名，就必须打进 tar，
+   *    否则下发后设备拿不到 `.bin` 资源。
+   *  - 跳过 `clock_bg.*`：dial 主图固定为 tar 内 `clock_bg.jpg`，由我们另行写入。
+   *  - 跳过 http(s) URL：那是设备已托管的资源，无需重新上传。
    */
   function collectLanBundlableDispAssetLeaves() {
     const byLeaf = new Map();
     for (const item of state.config.ItemList || []) {
       const addr = String(item?.image_addr || "").trim();
       if (!addr) continue;
+      if (/^https?:\/\//i.test(addr)) continue;
+      const leaf = basename(addr);
+      if (!leaf) continue;
+      if (/^clock_bg\.(jpe?g|webp)$/i.test(leaf)) continue;
+      const asset = getLocalDispAsset(item);
+      if (!asset?.objectUrl) continue;
+      if (!byLeaf.has(leaf)) byLeaf.set(leaf, asset);
+    }
+    return byLeaf;
+  }
+
+  /**
+   * PATCH 语义专用的元素图叶子收集器。与 CREATE 不同的是：设备此时已托管该 dial 的全部既有资源
+   * （模板预载的 `.bin`/`.gif` 已经被设备分配 image_id，URL 也已落 cloud），所以**只对用户在编辑器里
+   * 显式新选的资源**（`asset.fromLocalPick === true`）触发 tar.gz 上传；模板预载（`fromLocalPick=false`）
+   * 跳过——避免无意义地把同一文件再传一遍并改写设备 img_addr 的 cloud URL。
+   */
+  function collectLanUserPickedDispAssetLeaves() {
+    const byLeaf = new Map();
+    for (const item of state.config.ItemList || []) {
+      const addr = String(item?.image_addr || "").trim();
+      if (!addr) continue;
+      if (/^https?:\/\//i.test(addr)) continue;
       const leaf = basename(addr);
       if (!leaf) continue;
       if (/^clock_bg\.(jpe?g|webp)$/i.test(leaf)) continue;
@@ -3918,6 +4126,80 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       o += c.length;
     }
     return out;
+  }
+
+  /**
+   * 设备 `wf_validate_bundle_slot_image_file` 接受的元素图魔数：
+   * - JPEG：`FF D8`
+   * - WEBP：`RIFF....WEBP`
+   * - PNG：`89 50 4E 47 0D 0A 1A 0A`（仅元素槽位允许，背景图仍只接受 JPEG/WEBP）
+   */
+  function isBundleSlotSupportedBytes(u8) {
+    if (!u8 || u8.length < 12) return false;
+    if (u8[0] === 0xff && u8[1] === 0xd8) return true;
+    if (
+      u8[0] === 0x52 && u8[1] === 0x49 && u8[2] === 0x46 && u8[3] === 0x46 &&
+      u8[8] === 0x57 && u8[9] === 0x45 && u8[10] === 0x42 && u8[11] === 0x50
+    ) {
+      return true;
+    }
+    if (
+      u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47 &&
+      u8[4] === 0x0d && u8[5] === 0x0a && u8[6] === 0x1a && u8[7] === 0x0a
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 兜底：当字节流既不是 JPEG/WEBP 也不是 PNG（例如 BMP、TIFF、ICO 等）时，转码到 JPEG。
+   * 透明像素以黑色填充背景（动画 GIF 会丢失帧，仅保留首帧）。
+   */
+  async function encodeBytesToJpegForBundle(srcBytes, mimeHint) {
+    const type = (mimeHint && mimeHint.startsWith("image/")) ? mimeHint : "image/png";
+    const blob = new Blob([srcBytes], { type });
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = await loadImageByObjectUrl(url);
+      const w = Math.max(1, img.naturalWidth || img.width || 1);
+      const h = Math.max(1, img.naturalHeight || img.height || 1);
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      const out = await new Promise((resolve, reject) => {
+        c.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.9);
+      });
+      const buf = await out.arrayBuffer();
+      return new Uint8Array(buf);
+    } finally {
+      try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+    }
+  }
+
+  /**
+   * 让 `clock_bg.tar.gz` 内每张元素图都被设备接受。固件 `wf_validate_bundle_slot_image_file`
+   * 元素槽位允许 JPEG/WEBP/PNG（背景图另有 dial-bg 校验函数限定为 JPEG/WEBP）。
+   * - JPEG/WEBP/PNG：原字节直通，保留原叶子名（与 ItemList.image_addr 对齐）。
+   * - 其它格式（如 BMP/TIFF/ICO/GIF 等）才走 canvas 转码到 JPEG 兜底。
+   */
+  async function ensureBundleSlotBytesAreSupported(srcBytes, asset, leaf) {
+    if (isBundleSlotSupportedBytes(srcBytes)) return srcBytes;
+    try {
+      const transcoded = await encodeBytesToJpegForBundle(srcBytes, asset?.mimeType || "");
+      if (isLanVerboseDebug()) {
+        fontStore.log(
+          `[LAN bundle] transcoded ${leaf} → JPEG (was ${asset?.mimeType || "?"}, ${srcBytes.length}B → ${transcoded.length}B)`
+        );
+      }
+      return transcoded;
+    } catch (e) {
+      throw new Error(t("lan.err.bundleAssetFetchFailed", { name: leaf }));
+    }
   }
 
   async function gzipUint8Array(u8) {
@@ -3978,8 +4260,16 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     }
   }
 
-  async function resolveLanMultipartDialSecondPart() {
-    const leafMap = collectLanBundlableDispAssetLeaves();
+  /**
+   * 决定 multipart 第二段：单 JPEG（`DialAssets:image`）或 tar.gz（`DialAssets:bundle`）。
+   *
+   * @param {Map<string,object>|null} externalLeafMap
+   *   非 null 时使用调用方提供的叶子集（PATCH 路径需要按 `fromLocalPick` 过滤，使用
+   *   `collectLanUserPickedDispAssetLeaves` 的结果）；为 null 时回落到 CREATE 默认收集策略
+   *   （`collectLanBundlableDispAssetLeaves`，包含模板预载）。
+   */
+  async function resolveLanMultipartDialSecondPart(externalLeafMap = null) {
+    const leafMap = externalLeafMap !== null ? externalLeafMap : collectLanBundlableDispAssetLeaves();
     if (!leafMap.size) {
       const blob = await renderDialBackgroundJpegBlobForLanUpload();
       const pack = { dialAssets: "image", blob, multipartFilename: LAN_MULTIPART_DIAL_FILENAME };
@@ -3992,7 +4282,9 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     for (const [leaf, asset] of leafMap) {
       const res = await fetch(asset.objectUrl);
       if (!res.ok) throw new Error(t("lan.err.bundleAssetFetchFailed", { name: leaf }));
-      files.push({ name: leaf, data: new Uint8Array(await res.arrayBuffer()) });
+      const raw = new Uint8Array(await res.arrayBuffer());
+      const safeBytes = await ensureBundleSlotBytesAreSupported(raw, asset, leaf);
+      files.push({ name: leaf, data: safeBytes });
     }
     const tarBytes = buildTarArchiveBytes(files);
     const gzBlob = await gzipUint8Array(tarBytes);
@@ -4019,7 +4311,9 @@ const LAN_DEBUG_HISTORY_MAX = 12;
   /** Divoom Frame 等设备在 LAN 上常对 `/create_local_clock` 直接返回此笼统错误（实测 multipart 与 patch 无关）。 */
   function isLikelyCreateLocalClockLanRejection(msg) {
     const s = String(msg || "");
-    return /missing file part|invalid image\/bundle|filename in multipart|size mismatch|empty ItemList stage/i.test(s);
+    return /missing JSON part|missing file part|invalid image\/bundle|filename in multipart|size mismatch|empty ItemList stage/i.test(
+      s
+    );
   }
 
   function formatLanCreateFailureAlert(msg) {
@@ -4133,15 +4427,24 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     [LAN_MULTIPART_ENDPOINT.patch]: "Device/PatchLocalClockInfo"
   });
 
-  /** 与 divoom_app/tools/mcp-divoom-lan/src/index.ts `buildMultipartTwoParts` 完全一致（固定 boundary、第二段字段名为 Date.now、octet-stream）。 */
+  /**
+   * 严格按设备固件 `divoom_http_server_create_local_clock_handler` /
+   * `divoom_http_server_patch_local_clock_handler` 解析顺序构造（z:/.../divoom_app/src/app/divoom_http_server.c）：
+   *
+   *  1. **首段必须是 JSON**：`upload_do_first_data` 找 `\r` 取 boundary 行 → 找 `\r\n\r\n` →
+   *     找 `{` → 找下个 boundary → 倒退到 `}` 抠出 JSON。
+   *  2. **次段是文件**，header 必须含 `filename="…"` 与 `Content-Length: N`：`upload_get_file_info`
+   *     用 `filename` 落到 `/userdata/app_pic/<file_name>`；`Content-Length` 决定 `cur_file_size`，
+   *     COMPLETE 时校验 `file_len == cur_file_size`，否则 `missing file part / size mismatch`。
+   *  3. boundary 在 `Content-Type` 中**不加引号**。
+   *
+   * 字节布局：jsonPart + meta + CRLF + filePart + image + closingBoundary。
+   */
   const LAN_MULTIPART_BOUNDARY_MCP = Object.freeze({
     [LAN_MULTIPART_ENDPOINT.create]: "----DivoomMcpCreateClockBoundary7YA4YWxkTrZu0gW",
     [LAN_MULTIPART_ENDPOINT.patch]: "----DivoomMcpPatchClockBoundary7YA4YWxkTrZu0gW"
   });
 
-  /**
-   * 字节布局同 MCP `buildMultipartTwoParts`：part1 + meta + CRLF + part2 + file + ending。
-   */
   async function buildLanMultipartWireForDevice(jsonStr, imageBlob, pathSuffix, dialFileName) {
     assertNonEmptyDialImageBlob(imageBlob);
     const boundary = LAN_MULTIPART_BOUNDARY_MCP[pathSuffix];
@@ -4157,34 +4460,34 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     const crlf = "\r\n";
     const filePartName = String(Date.now()).replace(/"/g, "");
     const safeFn = String(dialFileName || LAN_MULTIPART_DIAL_FILENAME).replace(/"/g, "");
-    const head1 =
+    const headJson =
       `--${boundary}${crlf}` +
       `Content-Disposition: form-data; name="json"; filename="cmd.json"${crlf}` +
       `Content-Type: application/json${crlf}` +
       `Content-Length: ${metaJson.length}${crlf}` +
       crlf;
-    const head2 =
+    const headFile =
       `--${boundary}${crlf}` +
       `Content-Disposition: form-data; name="${filePartName}"; filename="${safeFn}"${crlf}` +
       `Content-Type: application/octet-stream${crlf}` +
       `Content-Length: ${img.length}${crlf}` +
       crlf;
     const tail = `${crlf}--${boundary}--${crlf}`;
-    const h1b = enc.encode(head1);
-    const h2b = enc.encode(head2);
+    const hJson = enc.encode(headJson);
+    const hFile = enc.encode(headFile);
     const mid = enc.encode(crlf);
     const tailb = enc.encode(tail);
-    const totalLen = h1b.length + metaJson.length + mid.length + h2b.length + img.length + tailb.length;
+    const totalLen = hJson.length + metaJson.length + mid.length + hFile.length + img.length + tailb.length;
     const out = new Uint8Array(totalLen);
     let o = 0;
-    out.set(h1b, o);
-    o += h1b.length;
+    out.set(hJson, o);
+    o += hJson.length;
     out.set(metaJson, o);
     o += metaJson.length;
     out.set(mid, o);
     o += mid.length;
-    out.set(h2b, o);
-    o += h2b.length;
+    out.set(hFile, o);
+    o += hFile.length;
     out.set(img, o);
     o += img.length;
     out.set(tailb, o);
@@ -4240,7 +4543,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       imageFileName: dialFileName,
       imageBytes: imageBlob?.size ?? 0,
       imageMime: imageBlob?.type || "",
-      multipartWireNote: "mcp-divoom-lan buildMultipartTwoParts (index.ts)"
+      multipartWireNote: "Frame LAN multipart: part1 JSON(name=json,filename=cmd.json) + part2 file(name=ts,filename=...) both with Content-Length"
     };
     fontStore.log(t("lan.log.multipart", { path: pathSuffix, command: metadata.Command }));
     if (isLanVerboseDebug()) {
@@ -4252,7 +4555,10 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       await buildLanMultipartWireForDevice(jsonStr, imageBlob, pathSuffix, dialFileName);
     entry.multipartTotalBytes = multipartBytes.length;
     entry.multipartContentLength = multipartContentLength;
-    entry.multipartBoundary = multipartCt.match(/boundary=([^;]+)/)?.[1] ?? "";
+    entry.multipartBoundary =
+      multipartCt.match(/\bboundary="([^"]+)"/i)?.[1] ??
+      multipartCt.match(/\bboundary=([^;\s]+)/i)?.[1]?.replace(/^"+|"+$/g, "") ??
+      "";
     entry.multipartFilePartName = filePartName;
     let res;
     let text = "";
@@ -4396,6 +4702,31 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     }
   }
 
+  /** LAN 成功类提示：居中 `<dialog>`，替代浏览器原生 `alert`（文案与按钮不可居中样式）。 */
+  function showLanCenteredMessage(message) {
+    const dlg = dom.lanMessageDialog;
+    const body = dom.lanMessageDialogBody;
+    if (!dlg || !body) {
+      alert(message);
+      return;
+    }
+    body.textContent = message;
+    if (!dlg.open) dlg.showModal();
+  }
+
+  /**
+   * 应用表盘配置（PATCH）。设备固件 `divoom_watchface_local_http_patch_local_clock_with_upload`
+   * 同时支持「`ItemList` 整表替换 + `ItemIdList`」与「`ItemPatchList` 字段级补丁」两种语义。
+   *
+   * 这里优先走「最小补丁」路径以避免覆盖设备侧已有的 `item_id`、`image_addr` 等 metadata；
+   * 仅在编辑器侧增删了项（长度不一致）时回退整表替换。
+   *
+   * 上传第二段（`/patch_local_clock` multipart）的规则：
+   * 1) 任何元素 patch 含 `bundle_image` → 必须 `DialAssets:bundle`，第二段为 tar.gz。
+   * 2) 否则用户改了 dial 底图 → `DialAssets:image`，第二段为单张 JPEG。
+   * 3) 否则纯字段调整（字号/坐标/颜色等）走 `/divoom_api` JSON，无第二段。
+   *    （对应固件 `else { divoom_watchface_local_http_patch_local_clock_with_upload(json, NULL, 0) }` 分支。）
+   */
   async function onLanApplyWatchfaceConfigClick() {
     if (toNum(state.config.ClockId, 0) <= 0) return;
     if (!state.config.ItemList.length) {
@@ -4406,19 +4737,73 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     if (btn) btn.disabled = true;
     try {
       fontStore.log(t("lan.busy"));
-      const patchPayload = await buildLanPatchPayloadMergedForMultipart();
-      const dialPack = await resolveLanMultipartDialSecondPart();
-      assertNonEmptyDialImageBlob(dialPack.blob);
-      const meta = {
-        Command: "Device/PatchLocalClockInfo",
-        ReturnCode: 0,
-        DialAssets: dialPack.dialAssets,
-        ...patchPayload
-      };
-      logLanMultipartMetadata("PatchLocalClockInfo", meta);
-      await divoomPatchLocalClockMultipart(meta, dialPack.blob, dialPack.multipartFilename);
+
+      syncItemIdList();
+      const clockId = toNum(state.config.ClockId, 0);
+      const clockSel = clockId > 0 ? { ClockId: clockId } : { UseCurrentDisplayClock: true };
+      const deviceItems = await fetchLanEditableClockItemsOrThrow(clockSel);
+      const userPickedLeafMap = collectLanUserPickedDispAssetLeaves();
+      const cmp = computeLanItemPatchList(state.config.ItemList, deviceItems, userPickedLeafMap);
+      const bgDirty = isLanBackgroundDirtyAgainstBaseline();
+      const hasBundleLeaf = cmp.patches.some((entry) => !!entry.patch?.bundle_image);
+
+      if (cmp.lengthMismatch) {
+        const merged = mergeItemListImageAddrForLanPatch(state.config.ItemList, deviceItems);
+        const fullReplaceLeafMap = collectLanBundlableDispAssetLeaves();
+        const dialPack = await resolveLanMultipartDialSecondPart();
+        assertNonEmptyDialImageBlob(dialPack.blob);
+        const meta = {
+          Command: "Device/PatchLocalClockInfo",
+          ReturnCode: 0,
+          DialAssets: dialPack.dialAssets,
+          ...clockSel,
+          ItemList: merged.map((item) => ({ ...item })),
+          ItemIdList: [...state.config.ItemIdList]
+        };
+        const itemPatchListForBinding = [];
+        merged.forEach((it, idx) => {
+          const addr = String(it?.image_addr || "").trim();
+          if (!addr || /^https?:\/\//i.test(addr)) return;
+          const leaf = basename(addr);
+          if (!leaf || !fullReplaceLeafMap.has(leaf)) return;
+          itemPatchListForBinding.push({ index: idx, patch: { bundle_image: leaf } });
+        });
+        if (itemPatchListForBinding.length > 0) {
+          meta.ItemPatchList = itemPatchListForBinding;
+        }
+        logLanMultipartMetadata("PatchLocalClockInfo (full replace)", meta);
+        await divoomPatchLocalClockMultipart(meta, dialPack.blob, dialPack.multipartFilename);
+      } else if (cmp.patches.length === 0 && !bgDirty) {
+        fontStore.log(t("lan.success.patch"));
+        showLanCenteredMessage(t("lan.success.patch"));
+        captureLanBaseline();
+        return;
+      } else if (hasBundleLeaf || bgDirty) {
+        const dialPack = await resolveLanMultipartDialSecondPart(
+          hasBundleLeaf ? userPickedLeafMap : new Map()
+        );
+        assertNonEmptyDialImageBlob(dialPack.blob);
+        const meta = {
+          Command: "Device/PatchLocalClockInfo",
+          ReturnCode: 0,
+          DialAssets: dialPack.dialAssets,
+          ...clockSel
+        };
+        if (cmp.patches.length > 0) meta.ItemPatchList = cmp.patches;
+        logLanMultipartMetadata("PatchLocalClockInfo (surgical)", meta);
+        await divoomPatchLocalClockMultipart(meta, dialPack.blob, dialPack.multipartFilename);
+      } else {
+        const meta = {
+          Command: "Device/PatchLocalClockInfo",
+          ReturnCode: 0,
+          ...clockSel,
+          ItemPatchList: cmp.patches
+        };
+        logLanMultipartMetadata("PatchLocalClockInfo (json-only)", meta);
+        await divoomJson("Device/PatchLocalClockInfo", meta);
+      }
       fontStore.log(t("lan.success.patch"));
-      alert(t("lan.success.patch"));
+      showLanCenteredMessage(t("lan.success.patch"));
       captureLanBaseline();
     } catch (e) {
       alert(errorToText(e));
@@ -4546,6 +4931,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       if (!silent) fontStore.log(t("lan.device.listFailed", { message: msg }));
     } finally {
       if (btn) btn.disabled = false;
+      refreshLanActionButtons();
     }
   }
 
@@ -4565,10 +4951,12 @@ const LAN_DEBUG_HISTORY_MAX = 12;
         const id = dom.selectLanDevice.value;
         if (!id) {
           clearPersistedLanDeviceSelection();
+          refreshLanActionButtons();
           return;
         }
         const row = lanDeviceRowsById.get(id);
         if (row) persistLanDeviceRow(row);
+        refreshLanActionButtons();
       });
     }
   }
@@ -4594,6 +4982,9 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     }
     if (dom.lanCreateCancel && dom.lanCreateDialog) {
       dom.lanCreateCancel.addEventListener("click", () => dom.lanCreateDialog.close());
+    }
+    if (dom.lanMessageDialogOk && dom.lanMessageDialog) {
+      dom.lanMessageDialogOk.addEventListener("click", () => dom.lanMessageDialog.close());
     }
     if (dom.lanCreateForm) {
       dom.lanCreateForm.addEventListener("submit", (ev) => {
@@ -5049,8 +5440,8 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     select.dataset.key = "alig";
     const currentId = toNum(currentAlign, 0);
     const options = [
-      { value: 1, label: t("editor.align.left") },
-      { value: 2, label: t("editor.align.right") },
+      { value: 4, label: t("editor.align.left") },
+      { value: 5, label: t("editor.align.right") },
       { value: 3, label: t("editor.align.center") }
     ];
     let hasCurrent = false;
@@ -5157,7 +5548,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
 
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.accept = ".gif,.webp,image/gif,image/webp";
+    fileInput.accept = "image/jpeg,image/jpg,image/gif,image/webp,.jpg,.jpeg,.jfif,.webp,.gif";
 
     const infoGrid = document.createElement("div");
     infoGrid.className = "asset-info-grid";
@@ -6019,7 +6410,48 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     renderFontPreview();
   }
 
+  function ensurePreviewStageResizeObserver() {
+    if (previewStageResizeObs || typeof ResizeObserver === "undefined" || !dom.previewStage) return;
+    previewStageResizeObs = new ResizeObserver(() => {
+      if (sidebarBrowseMode !== "template") return;
+      requestAnimationFrame(() => {
+        if (sidebarBrowseMode !== "template") return;
+        applyCanvasZoom();
+      });
+    });
+    previewStageResizeObs.observe(dom.previewStage);
+  }
+
+  function applyTemplatePreviewFit() {
+    const stage = dom.previewStage;
+    const canvas = dom.canvas;
+    if (!stage || !canvas || !state.width || !state.height) return;
+    const cs = window.getComputedStyle(stage);
+    const padX =
+      (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const padY =
+      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const cr = stage.getBoundingClientRect();
+    let availW = cr.width - padX;
+    let availH = cr.height - padY;
+    if (availW < 40 || availH < 40) {
+      const zFallback = 22;
+      canvas.style.width = `${Math.round(state.width * (zFallback / 100))}px`;
+      canvas.style.height = `${Math.round(state.height * (zFallback / 100))}px`;
+      return;
+    }
+    const zw = (availW / state.width) * 100;
+    const zh = (availH / state.height) * 100;
+    const z = clamp(Math.min(zw, zh), 10, 100);
+    canvas.style.width = `${Math.round(state.width * (z / 100))}px`;
+    canvas.style.height = `${Math.round(state.height * (z / 100))}px`;
+  }
+
   function applyCanvasZoom() {
+    if (sidebarBrowseMode === "template") {
+      applyTemplatePreviewFit();
+      return;
+    }
     const z = clamp(toNum(state.zoom, 55), 20, 220);
     dom.canvas.style.width = `${Math.round(state.width * z / 100)}px`;
     dom.canvas.style.height = `${Math.round(state.height * z / 100)}px`;
@@ -6135,7 +6567,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     const item = {
       font: id,
       size: 44,
-      alig: 1,
+      alig: 4,
       color_1: "#ffffff",
       color_2: "#000000",
       transp: 100
@@ -6431,6 +6863,7 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     rebuildTemplateClassifyRows();
 
     bindEvents();
+    ensurePreviewStageResizeObserver();
     void refreshLanDeviceListUi({ silent: true });
     applyCanvasZoom();
     refreshFontPreviewSelect();

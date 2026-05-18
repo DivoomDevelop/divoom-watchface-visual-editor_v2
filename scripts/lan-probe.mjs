@@ -37,12 +37,16 @@ function sh(cmd, args, opts = {}) {
   return r;
 }
 
-/** 与 divoom_app/tools/mcp-divoom-lan `buildMultipartTwoParts`（watchface_create_local_clock）一致 */
+/**
+ * 与设备固件解析顺序一致（divoom_http_server_upload_do_first_data + upload_get_file_info）：
+ * 第一段 JSON（必须含 `{...}`，header 用 name=json; filename=cmd.json）；
+ * 第二段文件（必须含 `filename="..."` 与 part 内 `Content-Length: N`）。
+ */
 function buildCreateLocalClockMultipartBody(metaUtf8Buffer, jpgBuffer) {
   const b = "----DivoomMcpCreateClockBoundary7YA4YWxkTrZu0gW";
   const crlf = "\r\n";
   const filePartName = String(Date.now());
-  const head1 = Buffer.from(
+  const headJson = Buffer.from(
     `--${b}${crlf}` +
       `Content-Disposition: form-data; name="json"; filename="cmd.json"${crlf}` +
       `Content-Type: application/json${crlf}` +
@@ -50,7 +54,7 @@ function buildCreateLocalClockMultipartBody(metaUtf8Buffer, jpgBuffer) {
       crlf
   );
   const mid = Buffer.from(crlf);
-  const head2 = Buffer.from(
+  const headFile = Buffer.from(
     `--${b}${crlf}` +
       `Content-Disposition: form-data; name="${filePartName}"; filename="clock_bg.jpg"${crlf}` +
       `Content-Type: application/octet-stream${crlf}` +
@@ -59,7 +63,7 @@ function buildCreateLocalClockMultipartBody(metaUtf8Buffer, jpgBuffer) {
   );
   const end = Buffer.from(`${crlf}--${b}--${crlf}`);
   return {
-    buffer: Buffer.concat([head1, metaUtf8Buffer, mid, head2, jpgBuffer, end]),
+    buffer: Buffer.concat([headJson, metaUtf8Buffer, mid, headFile, jpgBuffer, end]),
     contentType: `multipart/form-data; boundary=${b}`
   };
 }

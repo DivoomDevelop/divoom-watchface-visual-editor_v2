@@ -609,6 +609,14 @@ button:disabled {
   background-size: 22px 22px;
 }
 
+/* 模板浏览：整块表盘缩放进可视区域，不出现预览区内滚动条 */
+.layout-mode-template .preview-stage {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #watchface-canvas {
   display: block;
   margin: 0 auto;
@@ -929,6 +937,21 @@ button:disabled {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.lan-message-dialog__inner {
+  padding: 22px 24px 18px;
+}
+
+.lan-message-dialog__body {
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.lan-message-dialog__actions {
+  justify-content: center;
 }
 
 .btn-ghost {
