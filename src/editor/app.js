@@ -40,6 +40,8 @@ const LAN_MULTIPART_BUNDLE_FILENAME = "clock_bg.tar.gz";
 /** 设为 1 或在地址栏加 ?lanDebug=1 后刷新：日志区输出 multipart JSON 片段等详细信息。 */
 const LAN_DEBUG_STORAGE_VERBOSE = "divoom_lan_verbose";
 const LAN_DEBUG_HISTORY_MAX = 12;
+/** 本地文件选择大小上限（字节）。 */
+const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
 
   const DISP_NAME_MAP = Object.freeze({
     1: "SECOND",
@@ -1011,6 +1013,14 @@ const LAN_DEBUG_HISTORY_MAX = 12;
       img.onerror = () => reject(new Error("image decode failed"));
       img.src = url;
     });
+  }
+
+  /** @returns {boolean} true 表示超过上限并已弹出提示（调用方应清空 input 并中止加载）。 */
+  function alertIfLocalPickFileTooLarge(file) {
+    const size = toNum(file?.size, 0);
+    if (size <= LOCAL_FILE_PICK_MAX_BYTES) return false;
+    alert(t("alert.localFileTooLarge"));
+    return true;
   }
 
   async function loadLocalAssetFromFile(file) {
@@ -5678,6 +5688,11 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      if (alertIfLocalPickFileTooLarge(file)) {
+        fileInput.value = "";
+        refresh();
+        return;
+      }
       try {
         const asset = await loadLocalAssetFromFile(file);
         setLocalDispAsset(item, asset);
@@ -6837,6 +6852,10 @@ const LAN_DEBUG_HISTORY_MAX = 12;
     dom.inputBgFile.addEventListener("change", (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      if (alertIfLocalPickFileTooLarge(file)) {
+        if (dom.inputBgFile) dom.inputBgFile.value = "";
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         const img = new Image();

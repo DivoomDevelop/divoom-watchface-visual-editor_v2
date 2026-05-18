@@ -176,6 +176,7 @@ const enUS = Object.freeze({
   "alert.readConfigFailed": "Read config failed: {message}",
   "alert.backgroundLoadFailed": "Background image load failed",
   "alert.localAssetLoadFailed": "Local animation load failed: {message}",
+  "alert.localFileTooLarge": "File must be 500 KB or smaller. Please choose another file.",
 
   "lan.dialog.title": "Push watchface to device",
   "lan.dialog.missing": "Could not open the confirmation dialog (unexpected page markup).",

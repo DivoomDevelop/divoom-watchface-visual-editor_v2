@@ -175,6 +175,7 @@ const zhCN = Object.freeze({
   "alert.readConfigFailed": "读取配置失败: {message}",
   "alert.backgroundLoadFailed": "底图加载失败",
   "alert.localAssetLoadFailed": "本地动画加载失败: {message}",
+  "alert.localFileTooLarge": "文件不能超过 500KB，请重新选择。",
 
   "lan.dialog.title": "下发到设备的表盘",
   "lan.dialog.missing": "无法打开确认对话框（页面结构异常）。",
