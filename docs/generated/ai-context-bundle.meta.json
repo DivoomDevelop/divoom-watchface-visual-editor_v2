@@ -1,6 +1,7 @@
 {
-  "generatedAt": "2026-05-18T01:57:32.446Z",
+  "generatedAt": "2026-05-29T10:26:16.712Z",
   "aiWatchfaceGuide": "docs/AI_WATCHFACE_GUIDE.md",
+  "fontGuide": "docs/generated/ai-font-guide.md",
   "schema": "docs/watchface-config.schema.json",
   "exampleMinimal": "docs/examples/ai-minimal-watchface.json",
   "fontCatalog": {

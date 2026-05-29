@@ -2,12 +2,14 @@
 /**
  * Generates AI-facing artifacts from repo sources:
  * - docs/generated/ai-font-catalog.json  ← public/font/font_info.cfg
+ * - docs/generated/ai-font-guide.md        ← font style/use-case descriptions for LLMs
  * - docs/generated/disp-catalog.json     ← DISP_NAME_MAP in src/editor/app.js
  * Run after changing fonts or disp enum in editor source.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildFontGuideMarkdown } from "./font-ai-descriptions.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -140,9 +142,12 @@ function main() {
     displays
   };
 
+  const fontGuideMd = buildFontGuideMarkdown(fonts, generatedAt);
+
   const bundle = {
     generatedAt,
     aiWatchfaceGuide: "docs/AI_WATCHFACE_GUIDE.md",
+    fontGuide: "docs/generated/ai-font-guide.md",
     schema: "docs/watchface-config.schema.json",
     exampleMinimal: "docs/examples/ai-minimal-watchface.json",
     fontCatalog: fontCatalog.summary,
@@ -151,9 +156,11 @@ function main() {
 
   fs.writeFileSync(path.join(OUT_DIR, "ai-font-catalog.json"), JSON.stringify(fontCatalog, null, 2), "utf8");
   fs.writeFileSync(path.join(OUT_DIR, "disp-catalog.json"), JSON.stringify(dispCatalog, null, 2), "utf8");
+  fs.writeFileSync(path.join(OUT_DIR, "ai-font-guide.md"), fontGuideMd, "utf8");
   fs.writeFileSync(path.join(OUT_DIR, "ai-context-bundle.meta.json"), JSON.stringify(bundle, null, 2), "utf8");
 
   console.log(`Wrote ${path.relative(ROOT, OUT_DIR)}/ai-font-catalog.json (${fonts.length} fonts)`);
+  console.log(`Wrote ${path.relative(ROOT, OUT_DIR)}/ai-font-guide.md`);
   console.log(`Wrote ${path.relative(ROOT, OUT_DIR)}/disp-catalog.json (${displays.length} disp kinds)`);
 }
 

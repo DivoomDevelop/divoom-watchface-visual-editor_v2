@@ -17,15 +17,17 @@ Outputs:
 | File | Purpose |
 |------|---------|
 | `generated/ai-font-catalog.json` | Every font id, `type` (0=image glyph, 1=TTF), name, charset preview |
+| `generated/ai-font-guide.md` | **Human-readable font guide** — visual style, mood, use cases, scenario index (for LLM context) |
 | `generated/disp-catalog.json` | Every `disp` id + symbolic name + heuristic hints for models |
 | `generated/ai-context-bundle.meta.json` | Short pointer doc for tooling |
 
 ## What to give an LLM (recommended bundle)
 
-1. **`docs/generated/ai-font-catalog.json`** — constrain `font` to **`allowedFontIds`** only.  
-2. **`docs/generated/disp-catalog.json`** — pick valid **`disp`** values; read **`hints`** as soft guidance only.  
-3. **`docs/watchface-config.schema.json`** — shape of root config + `ItemList[]`.  
-4. **`docs/examples/ai-minimal-watchface.json`** — tiny valid example (replace `font` with an id still present in your catalog after regen).
+1. **`docs/generated/ai-font-guide.md`** — **start here for font choice**: style, effect, scenario table, per-id descriptions.  
+2. **`docs/generated/ai-font-catalog.json`** — constrain `font` to **`allowedFontIds`** only (machine-readable).  
+3. **`docs/generated/disp-catalog.json`** — pick valid **`disp`** values; read **`hints`** as soft guidance only.  
+4. **`docs/watchface-config.schema.json`** — shape of root config + `ItemList[]`.  
+5. **`docs/examples/ai-minimal-watchface.json`** — tiny valid example (replace `font` with an id still present in your catalog after regen).
 
 ## Coordinate & canvas conventions
 
