@@ -979,6 +979,96 @@ button:disabled {
 
 /* Template browse column (full-height list scroll inside main) */
 
+.btn-sync-templates[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.template-sync-status {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8fa8d8;
+  word-break: break-word;
+}
+
+.template-sync-status.is-error {
+  color: #f5a8a8;
+}
+
+.template-sync-status.is-ok {
+  color: #8fd4a8;
+}
+
+.template-pending-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.template-pending-list li {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  cursor: default;
+}
+
+.template-pending-list li .template-row-thumb {
+  cursor: pointer;
+}
+
+.template-pending-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.template-pending-actions .btn-download-template {
+  flex: 1;
+}
+
+.template-pending-badge {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.template-pending-badge.is-installed {
+  color: #8fd4a8;
+}
+
+.template-pending-badge.is-missing {
+  color: #e8c47a;
+}
+
+.template-pending-badge.is-outdated {
+  color: #9eb7e8;
+}
+
+.template-download-dialog {
+  min-width: 320px;
+  max-width: 420px;
+}
+
+.template-download-dialog::backdrop {
+  background: rgba(8, 10, 16, 0.72);
+}
+
+.template-download-progress {
+  width: 100%;
+  height: 10px;
+  margin: 12px 0 8px;
+}
+
+.template-download-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
 .sidebar-template-actions .btn-primary {
   flex: 1;
 }
@@ -999,6 +1089,13 @@ button:disabled {
   height: auto !important;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.layout-mode-template .template-pending-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .template-list-with-thumb li {

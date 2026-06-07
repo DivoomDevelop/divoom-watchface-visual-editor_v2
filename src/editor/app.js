@@ -18,6 +18,22 @@ import {
   newWatchfaceId,
   BUNDLED_STARTER_WATCHFACE_ID
 } from "./localWatchfacesStore.js";
+import { resolveCdnFetchUrl } from "./cdnAssets.js";
+import { isDevSyncApiAvailable, saveClassifyCacheViaApi } from "./devSyncApi.js";
+import { createDivoomChinaStoreJson } from "./divoomCloudApi.js";
+import { buildDivoomLanEnvelope } from "./divoomLanJson.js";
+import {
+  countPendingTemplateItems,
+  loadPendingTemplateCacheFromStorage,
+  reconcilePendingClassifyRows,
+  savePendingTemplateCacheToStorage
+} from "./pendingTemplateCache.js";
+import {
+  downloadSingleTemplateToLocal,
+  mergeClassifyCatalogSnapshots,
+  pickSyncLanguage,
+  scanPendingTemplatesFromDevice
+} from "./templateSync.js";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
@@ -491,9 +507,10 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   /** template/33 预览缩略图文件名：ClockId + 1（与 template/15 底图等资源命名规则一致）。 */
   const TEMPLATE_PREVIEW_DIR_33 = withBase("template/33/");
   const TEMPLATE_ORGANIZE_REPORT_PATH = withBase("template/organize-report.json");
+  const TEMPLATE_CLASSIFY_CACHE_PATH = withBase("template/classify-cache.json");
   const TEMPLATE_BG_EXT_CANDIDATES = [".bin", ".png", ".jpg", ".jpeg", ".webp", ".gif"];
   const TEMPLATE_IMG_EXT_CANDIDATES = [".bin", ".png", ".webp", ".gif", ".jpg", ".jpeg"];
-  const TEMPLATE_CLASSIFY_DATA = Object.freeze({
+  const TEMPLATE_CLASSIFY_FALLBACK = Object.freeze({
     ReturnCode: 0,
     ReturnMessage: "",
     ClassifyList: [
@@ -573,6 +590,27 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     DeviceId: 300344410,
     PacketFlag: 1745214910
   });
+
+  /** 设备同步后写入 public/template/classify-cache.json，优先于内置快照。 */
+  let templateClassifyDataRuntime = null;
+
+  function getTemplateClassifyData() {
+    return templateClassifyDataRuntime || TEMPLATE_CLASSIFY_FALLBACK;
+  }
+
+  function setTemplateClassifyDataRuntime(data) {
+    if (!data || typeof data !== "object" || !Array.isArray(data.ClassifyList)) return;
+    templateClassifyDataRuntime = Object.freeze({
+      ReturnCode: 0,
+      ReturnMessage: "",
+      ClassifyList: data.ClassifyList.map((row) => ({
+        ClassifyId: toNum(row?.ClassifyId, 0),
+        ClassifyName: String(row?.ClassifyName || "").trim(),
+        ClassifyNameEn: String(row?.ClassifyNameEn || row?.ClassifyName || "").trim(),
+        clockid: normalizeTemplateClassifyClockIds(row?.clockid)
+      }))
+    });
+  }
 
   // 固件映射：disp -> slot offset（来源 src/middle/divoom_clock_manage.c 的 gdivoom_disp_image_item_table）
   const TEMPLATE_DISP_OFFSET_TABLE = Object.freeze({
@@ -2040,6 +2078,20 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     panelTemplateShell: byId("panel-template-shell"),
     topbarShellLocalOnly: byId("topbar-shell-local-only"),
     btnApplyTemplate: byId("btn-apply-template"),
+    btnViewPendingTemplates: byId("btn-view-pending-templates"),
+    btnSyncTemplates: byId("btn-sync-templates"),
+    templateSyncStatus: byId("template-sync-status"),
+    templateBrowseCard: byId("template-browse-card"),
+    templatePendingCard: byId("template-pending-card"),
+    lblTemplatePending: byId("lbl-template-pending"),
+    templatePendingHint: byId("template-pending-hint"),
+    btnTemplatePendingBack: byId("btn-template-pending-back"),
+    templatePendingCategoryRail: byId("template-pending-category-rail"),
+    templatePendingList: byId("template-pending-list"),
+    templateDownloadDialog: byId("template-download-dialog"),
+    templateDownloadTitle: byId("template-download-title"),
+    templateDownloadProgress: byId("template-download-progress"),
+    templateDownloadStatus: byId("template-download-status"),
     browseTemplateToolbarHint: byId("browse-template-toolbar-hint"),
     btnNewWatchface: byId("btn-new-watchface"),
     localWatchHint: byId("local-watch-hint"),
@@ -2146,6 +2198,12 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     if (list) dom.templateList = list;
     if (bgPath) dom.txtBgSourcePath = bgPath;
     if (lblBgPath) dom.lblBgSourcePath = lblBgPath;
+    const btnViewPending = byId("btn-view-pending-templates");
+    const btnSync = byId("btn-sync-templates");
+    const syncStatus = byId("template-sync-status");
+    if (btnViewPending) dom.btnViewPendingTemplates = btnViewPending;
+    if (btnSync) dom.btnSyncTemplates = btnSync;
+    if (syncStatus) dom.templateSyncStatus = syncStatus;
   }
 
   const watchCtx = dom.canvas.getContext("2d");
@@ -2392,7 +2450,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   /** 内置模板分类表中的 clockId，用于扩充探测上界（report 里只有「缺失」id 时不得作为探测下界）。 */
   function collectClassifyCatalogClockIds() {
     const set = new Set();
-    const classifyList = Array.isArray(TEMPLATE_CLASSIFY_DATA?.ClassifyList) ? TEMPLATE_CLASSIFY_DATA.ClassifyList : [];
+    const classifyList = Array.isArray(getTemplateClassifyData()?.ClassifyList) ? getTemplateClassifyData().ClassifyList : [];
     for (const row of classifyList) {
       for (const id of Array.isArray(row.clockid) ? row.clockid : []) {
         const n = toNum(id, NaN);
@@ -2531,6 +2589,8 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     }
     if (!dom.adminPasswordDialog?.open)
       configureAdminGateDialog(readAdminUnlockFromStorage());
+    refreshTemplateSyncUi();
+    refreshSidebarBrowseChrome();
   }
 
   function refreshAboutDialogsI18n() {
@@ -2589,6 +2649,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
         if (raw === ADMIN_GATE_PASSWORD) {
           persistAdminUnlock(true);
           syncAdminUnlockUi();
+          refreshTemplateSyncUi();
           if (dom.adminPasswordStatus)
             dom.adminPasswordStatus.textContent = t("about.adminPwdSuccess");
           fontStore.log(t("about.adminUnlocked"));
@@ -2629,6 +2690,20 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     if (dom.appModeLocal) setNodeText(dom.appModeLocal, t("ui.tab.localWatchfaces"));
     if (dom.appModeTemplate) setNodeText(dom.appModeTemplate, t("ui.tab.templateWatchfaces"));
     if (dom.btnApplyTemplate) setNodeText(dom.btnApplyTemplate, t("ui.btn.applyTemplate"));
+    if (dom.btnViewPendingTemplates) {
+      const pendingCount = countPendingTemplateItems(pendingTemplateState.classifyRows);
+      setNodeText(dom.btnViewPendingTemplates, t("template.btn.viewPending", { count: pendingCount }));
+      dom.btnViewPendingTemplates.title = t("template.btn.viewPendingTitle");
+    }
+    if (dom.btnSyncTemplates) {
+      setNodeText(dom.btnSyncTemplates, t("template.btn.sync"));
+      dom.btnSyncTemplates.title = t("template.btn.syncTitle");
+    }
+    if (dom.lblTemplatePending) setNodeText(dom.lblTemplatePending, t("template.pending.title"));
+    if (dom.btnTemplatePendingBack) setNodeText(dom.btnTemplatePendingBack, t("template.pending.back"));
+    if (dom.templateDownloadTitle && !pendingTemplateState.downloading) {
+      setNodeText(dom.templateDownloadTitle, t("template.pending.downloadingTitle", { name: "" }));
+    }
 
     setNodeText(dom.secCanvasTitle, t("ui.sec.canvas"));
     setNodeText(dom.secBackgroundTitle, t("ui.sec.background"));
@@ -2839,7 +2914,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     }
 
     const rows = [];
-    const classifyList = Array.isArray(TEMPLATE_CLASSIFY_DATA?.ClassifyList) ? TEMPLATE_CLASSIFY_DATA.ClassifyList : [];
+    const classifyList = Array.isArray(getTemplateClassifyData()?.ClassifyList) ? getTemplateClassifyData().ClassifyList : [];
     for (const row of classifyList) {
       const classifyId = toNum(row?.ClassifyId, NaN);
       if (!Number.isFinite(classifyId)) continue;
@@ -3111,7 +3186,8 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
 
     if (dom.panelLocalShell) dom.panelLocalShell.hidden = templateTabActive;
     if (dom.panelTemplateShell) dom.panelTemplateShell.hidden = !templateTabActive;
-    if (dom.topbarShellLocalOnly) dom.topbarShellLocalOnly.hidden = templateTabActive;
+    /* 模板/待下载页也需选择 LAN 设备以更新模板库 */
+    if (dom.topbarShellLocalOnly) dom.topbarShellLocalOnly.hidden = false;
 
     dom.rightEditorPanel?.toggleAttribute("inert", templateTabActive);
 
@@ -3123,12 +3199,22 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
 
     const btnApply = dom.btnApplyTemplate;
     if (btnApply) {
-      const idSel = toNum(templateState.activeClockId, NaN);
+      const idSel = pendingTemplateState.active
+        ? toNum(pendingTemplateState.activeClockId, NaN)
+        : toNum(templateState.activeClockId, NaN);
       btnApply.disabled =
-        !templateTabActive || !Number.isFinite(idSel) || templateState.loading;
+        pendingTemplateState.active ||
+        !templateTabActive ||
+        !Number.isFinite(idSel) ||
+        templateState.loading;
+    }
+
+    if (templateTabActive && pendingTemplateState.active && dom.browseTemplateToolbarHint) {
+      setNodeText(dom.browseTemplateToolbarHint, t("template.pending.toolbarHint"));
     }
 
     refreshToolbarClockIdUi();
+    refreshTemplateSyncUi();
   }
 
   function onLocalConfigEdited() {
@@ -3830,9 +3916,35 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     return `/divoom-proxy${p}`;
   }
 
+  function resolveSelectedLanDeviceId() {
+    const id = dom.selectLanDevice?.value;
+    if (!id) return 0;
+    const row = lanDeviceRowsById.get(String(id));
+    return row?.DeviceId ?? 0;
+  }
+
+  /** 表盘商店 API 用 DeviceId（来自 LAN 选择或本地记录，不要求设备 HTTP 可达）。 */
+  function resolveStoreApiDeviceId() {
+    const fromUi = resolveSelectedLanDeviceId();
+    if (fromUi > 0) return fromUi;
+    try {
+      const saved = Number(localStorage.getItem("divoom_lan_selected_device_id"));
+      if (Number.isFinite(saved) && saved > 0) return saved;
+    } catch {
+      /* ignore */
+    }
+    return Number(TEMPLATE_CLASSIFY_FALLBACK.DeviceId) || 0;
+  }
+
+  const divoomStoreJson = createDivoomChinaStoreJson(resolveStoreApiDeviceId);
+
   async function divoomJson(command, payload = {}) {
+    const envelope = buildDivoomLanEnvelope(command, payload, resolveSelectedLanDeviceId);
+    if (!envelope.DeviceId) {
+      throw new Error(t("lan.err.noDeviceId"));
+    }
     const url = resolveDivoomUrl("/divoom_api");
-    const body = JSON.stringify({ Command: command, ReturnCode: 0, ...payload });
+    const body = JSON.stringify(envelope);
     let res;
     try {
       res = await fetch(url, buildLanFetchOptions({
@@ -3857,6 +3969,597 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       throw new Error(String(data.ReturnMessage || t("lan.err.returnCode", { code: data.ReturnCode })));
     }
     return data;
+  }
+
+  const templateSyncState = {
+    scanning: false,
+    message: "",
+    error: ""
+  };
+
+  const pendingTemplateState = {
+    active: false,
+    scanning: false,
+    downloading: false,
+    error: "",
+    scanMessage: "",
+    classifyRows: [],
+    selectedClassifyId: null,
+    activeClockId: null,
+    catalogSource: "",
+    savedAt: ""
+  };
+
+  function formatPendingCacheSavedAt(isoText) {
+    const raw = String(isoText || "").trim();
+    if (!raw) return "";
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    try {
+      return d.toLocaleString(getLocaleCode());
+    } catch {
+      return d.toISOString();
+    }
+  }
+
+  function savePendingTemplateCacheNow() {
+    savePendingTemplateCacheToStorage({
+      classifyRows: pendingTemplateState.classifyRows,
+      selectedClassifyId: pendingTemplateState.selectedClassifyId,
+      activeClockId: pendingTemplateState.activeClockId,
+      catalogSource: pendingTemplateState.catalogSource
+    });
+    refreshViewPendingButtonUi();
+  }
+
+  async function restorePendingTemplateFromStorage() {
+    const cached = loadPendingTemplateCacheFromStorage();
+    if (!cached) return false;
+    const { classifyRows } = await reconcilePendingClassifyRows(
+      cached.classifyRows,
+      loadTemplateConfigByClockId
+    );
+    if (!classifyRows.length) {
+      savePendingTemplateCacheToStorage({ classifyRows: [] });
+      pendingTemplateState.classifyRows = [];
+      pendingTemplateState.savedAt = "";
+      return false;
+    }
+    pendingTemplateState.classifyRows = classifyRows;
+    pendingTemplateState.catalogSource = cached.catalogSource || "";
+    pendingTemplateState.savedAt = cached.savedAt || "";
+    pendingTemplateState.error = "";
+    const prevSel = toNum(cached.selectedClassifyId, NaN);
+    pendingTemplateState.selectedClassifyId = classifyRows.some((r) => r.ClassifyId === prevSel)
+      ? prevSel
+      : (classifyRows[0]?.ClassifyId ?? null);
+    const prevActive = toNum(cached.activeClockId, NaN);
+    pendingTemplateState.activeClockId = Number.isFinite(prevActive) ? prevActive : null;
+    savePendingTemplateCacheNow();
+    return true;
+  }
+
+  function refreshViewPendingButtonUi() {
+    syncTemplateDomRefs();
+    const btn = dom.btnViewPendingTemplates;
+    if (!btn) return;
+    const count = countPendingTemplateItems(pendingTemplateState.classifyRows);
+    btn.hidden = pendingTemplateState.active || count <= 0;
+    const busy =
+      templateSyncState.scanning || pendingTemplateState.scanning || pendingTemplateState.downloading;
+    btn.disabled = busy;
+    setNodeText(btn, t("template.btn.viewPending", { count }));
+    btn.title = t("template.btn.viewPendingTitle");
+  }
+
+  function countClassifyCatalogClockIds(data) {
+    return (Array.isArray(data?.ClassifyList) ? data.ClassifyList : []).reduce(
+      (n, row) => n + normalizeTemplateClassifyClockIds(row?.clockid).length,
+      0
+    );
+  }
+
+  async function loadTemplateClassifyCache() {
+    try {
+      const data = await fetchJson(TEMPLATE_CLASSIFY_CACHE_PATH);
+      const merged = mergeClassifyCatalogSnapshots(TEMPLATE_CLASSIFY_FALLBACK, data);
+      setTemplateClassifyDataRuntime(merged);
+      if (
+        countClassifyCatalogClockIds(data) <
+        countClassifyCatalogClockIds(TEMPLATE_CLASSIFY_FALLBACK) * 0.9
+      ) {
+        try {
+          if (await isDevSyncApiAvailable()) {
+            await saveClassifyCacheViaApi(merged);
+          }
+        } catch {
+          /* 非 dev 或写入失败时仍保留内存中的合并结果 */
+        }
+      }
+    } catch {
+      /* 使用内置 TEMPLATE_CLASSIFY_FALLBACK */
+    }
+  }
+
+  function setTemplateSyncStatusText(text, tone = "") {
+    syncTemplateDomRefs();
+    const el = dom.templateSyncStatus;
+    if (!el) return;
+    const msg = String(text || "").trim();
+    el.hidden = !msg;
+    el.textContent = msg;
+    el.classList.remove("is-error", "is-ok");
+    if (tone === "error") el.classList.add("is-error");
+    if (tone === "ok") el.classList.add("is-ok");
+  }
+
+  function refreshTemplateSyncUi() {
+    syncTemplateDomRefs();
+    const btn = dom.btnSyncTemplates;
+    if (!btn) return;
+    btn.hidden = pendingTemplateState.active;
+    btn.title = t("template.btn.syncTitle");
+    setNodeText(btn, t("template.btn.sync"));
+    const hasStoreDeviceId = resolveStoreApiDeviceId() > 0;
+    const busy = templateSyncState.scanning || pendingTemplateState.scanning || pendingTemplateState.downloading;
+    btn.disabled = busy || !hasStoreDeviceId;
+    refreshViewPendingButtonUi();
+    if (templateSyncState.scanning || pendingTemplateState.scanning) {
+      setTemplateSyncStatusText(
+        t("template.sync.scanning", { message: templateSyncState.message || pendingTemplateState.scanMessage || "…" })
+      );
+    } else if (templateSyncState.error) {
+      setTemplateSyncStatusText(templateSyncState.error, "error");
+    } else if (!pendingTemplateState.active) {
+      setTemplateSyncStatusText("");
+    }
+  }
+
+  function setTemplatePendingPanelVisible(on) {
+    syncTemplateDomRefs();
+    pendingTemplateState.active = Boolean(on);
+    if (dom.templateBrowseCard) dom.templateBrowseCard.hidden = on;
+    if (dom.templatePendingCard) dom.templatePendingCard.hidden = !on;
+    if (dom.btnApplyTemplate) dom.btnApplyTemplate.hidden = on;
+    refreshTemplateSyncUi();
+    refreshSidebarBrowseChrome();
+  }
+
+  function getSelectedPendingClassifyRow() {
+    if (!pendingTemplateState.classifyRows.length) return null;
+    const selected = toNum(pendingTemplateState.selectedClassifyId, NaN);
+    if (Number.isFinite(selected)) {
+      const row = pendingTemplateState.classifyRows.find((item) => item.ClassifyId === selected);
+      if (row) return row;
+    }
+    return pendingTemplateState.classifyRows[0] || null;
+  }
+
+  function getPendingItemByClockId(clockId) {
+    const id = toNum(clockId, NaN);
+    if (!Number.isFinite(id)) return null;
+    for (const row of pendingTemplateState.classifyRows) {
+      for (const item of row.items || []) {
+        if (Number(item.clockId) === id) return item;
+      }
+    }
+    return null;
+  }
+
+  function refreshPendingTemplateCategoryUi() {
+    syncTemplateDomRefs();
+    const rail = dom.templatePendingCategoryRail;
+    if (!rail) return;
+    rail.innerHTML = "";
+    if (!pendingTemplateState.classifyRows.length) {
+      const empty = document.createElement("div");
+      empty.className = "template-category-empty";
+      empty.textContent = t("template.pending.empty");
+      rail.appendChild(empty);
+      pendingTemplateState.selectedClassifyId = null;
+      return;
+    }
+    const prev = toNum(pendingTemplateState.selectedClassifyId, NaN);
+    const hasPrev = pendingTemplateState.classifyRows.some((r) => r.ClassifyId === prev);
+    pendingTemplateState.selectedClassifyId = hasPrev
+      ? prev
+      : pendingTemplateState.classifyRows[0].ClassifyId;
+
+    for (const row of pendingTemplateState.classifyRows) {
+      const pendingCount = (row.items || []).filter((it) => it.status !== "installed").length;
+      const label = localizedDualName(row.ClassifyName, row.ClassifyNameEn, `Classify ${row.ClassifyId}`);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "template-category-chip";
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", String(row.ClassifyId === pendingTemplateState.selectedClassifyId));
+      if (row.ClassifyId === pendingTemplateState.selectedClassifyId) btn.classList.add("active");
+      btn.textContent = `${label} (${pendingCount})`;
+      btn.addEventListener("click", () => {
+        pendingTemplateState.selectedClassifyId = row.ClassifyId;
+        savePendingTemplateCacheNow();
+        refreshPendingTemplateCategoryUi();
+        refreshPendingTemplateListUi();
+      });
+      rail.appendChild(btn);
+    }
+  }
+
+  function pendingReasonLabel(reason) {
+    if (reason === "outdated") return t("template.pending.reasonOutdated");
+    return t("template.pending.reasonMissing");
+  }
+
+  function refreshPendingTemplateListUi() {
+    syncTemplateDomRefs();
+    const list = dom.templatePendingList;
+    const hint = dom.templatePendingHint;
+    if (!list || !hint) return;
+
+    const row = getSelectedPendingClassifyRow();
+    const items = row ? (row.items || []).filter((it) => it.status !== "installed") : [];
+
+    list.innerHTML = "";
+    if (pendingTemplateState.scanning) {
+      hint.textContent = t("template.pending.scanning", {
+        message: pendingTemplateState.scanMessage || "…"
+      });
+      const li = document.createElement("li");
+      li.className = "template-list-empty";
+      li.textContent = t("template.hint.loading");
+      list.appendChild(li);
+      return;
+    }
+    if (pendingTemplateState.error) {
+      hint.textContent = t("template.pending.scanFailed", { message: pendingTemplateState.error });
+      return;
+    }
+    if (!items.length) {
+      hint.textContent = row ? t("template.pending.categoryEmpty") : t("template.pending.empty");
+      const li = document.createElement("li");
+      li.className = "template-list-empty";
+      li.textContent = t("template.pending.empty");
+      list.appendChild(li);
+      return;
+    }
+
+    const savedLabel = formatPendingCacheSavedAt(pendingTemplateState.savedAt);
+    hint.textContent = savedLabel
+      ? t("template.pending.restored", { time: savedLabel })
+      : t("template.pending.hint", { count: items.length });
+
+    for (const item of items) {
+      const id = Number(item.clockId);
+      const li = document.createElement("li");
+      if (pendingTemplateState.activeClockId === id) li.classList.add("active");
+      if (item.status === "installed") li.classList.add("template-pending-installed");
+
+      const rowEl = document.createElement("div");
+      rowEl.className = "template-row-thumb";
+
+      const img = document.createElement("img");
+      img.className = "template-thumb-preview";
+      img.alt = "";
+      img.decoding = "async";
+      img.loading = "lazy";
+      if (item.imagePixelId) {
+        img.src = resolveCdnFetchUrl(item.imagePixelId, { useProxy: true, origin: location.origin });
+      } else {
+        img.src = `${TEMPLATE_PREVIEW_DIR_33}${id + 1}.png`;
+      }
+      img.onerror = () => {
+        img.src = `${TEMPLATE_PREVIEW_DIR_33}${id + 1}.png`;
+      };
+
+      const textWrap = document.createElement("div");
+      textWrap.className = "template-thumb-text";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "template-id";
+      nameSpan.textContent = item.clockName || `Clock ${id}`;
+      const sub = document.createElement("span");
+      sub.className = "template-thumb-sub";
+      sub.textContent = t("template.item.file", { id });
+      textWrap.append(nameSpan, sub);
+      rowEl.append(img, textWrap);
+
+      const actions = document.createElement("div");
+      actions.className = "template-pending-actions";
+
+      const badge = document.createElement("span");
+      badge.className = `template-pending-badge is-${item.reason === "outdated" ? "outdated" : "missing"}`;
+      badge.textContent = pendingReasonLabel(item.reason);
+
+      const dlBtn = document.createElement("button");
+      dlBtn.type = "button";
+      dlBtn.className = "btn-primary btn-download-template";
+      dlBtn.textContent = t("template.pending.download");
+      const installed = item.status === "installed";
+      const busy = pendingTemplateState.downloading;
+      dlBtn.disabled = installed || busy;
+      if (installed) dlBtn.textContent = t("template.pending.installed");
+
+      dlBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        void downloadPendingTemplateItem(id);
+      });
+
+      actions.append(badge, dlBtn);
+      li.append(rowEl, actions);
+
+      rowEl.addEventListener("click", () => {
+        pendingTemplateState.activeClockId = id;
+        savePendingTemplateCacheNow();
+        refreshPendingTemplateListUi();
+        void previewPendingTemplateIfAvailable(id);
+      });
+
+      list.appendChild(li);
+    }
+    refreshSidebarBrowseChrome();
+  }
+
+  async function previewPendingTemplateIfAvailable(clockId) {
+    const id = toNum(clockId, NaN);
+    if (!Number.isFinite(id)) return;
+    try {
+      const raw = await loadTemplateConfigByClockId(id);
+      if (raw) await previewTemplateWatchface(id);
+      else if (dom.browseTemplateToolbarHint) {
+        setNodeText(dom.browseTemplateToolbarHint, t("template.pending.previewNeedDownload"));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function loadClassifyCacheJsonForSync() {
+    try {
+      return await fetchJson(TEMPLATE_CLASSIFY_CACHE_PATH);
+    } catch {
+      return null;
+    }
+  }
+
+  function openTemplateDownloadProgressDialog(titleText) {
+    syncTemplateDomRefs();
+    if (!dom.templateDownloadDialog) return;
+    if (dom.templateDownloadTitle) setNodeText(dom.templateDownloadTitle, titleText);
+    if (dom.templateDownloadProgress) dom.templateDownloadProgress.value = 0;
+    if (dom.templateDownloadStatus) dom.templateDownloadStatus.textContent = "";
+    if (typeof dom.templateDownloadDialog.showModal === "function") {
+      dom.templateDownloadDialog.showModal();
+    }
+  }
+
+  function updateTemplateDownloadProgressDialog(percent, message) {
+    if (dom.templateDownloadProgress) {
+      dom.templateDownloadProgress.value = Math.max(0, Math.min(100, Number(percent) || 0));
+    }
+    if (dom.templateDownloadStatus) {
+      dom.templateDownloadStatus.textContent = String(message || "");
+    }
+  }
+
+  function closeTemplateDownloadProgressDialog() {
+    dom.templateDownloadDialog?.close?.();
+  }
+
+  async function downloadPendingTemplateItem(clockId) {
+    const id = toNum(clockId, NaN);
+    if (!Number.isFinite(id) || pendingTemplateState.downloading) return;
+    const item = getPendingItemByClockId(id);
+    if (!item || item.status === "installed") return;
+
+    if (!getLanTargetBase() || !isLanDeviceSelectedInUi()) {
+      alert(t("template.sync.needDevice"));
+      return;
+    }
+    const apiOk = await isDevSyncApiAvailable();
+    if (!apiOk) {
+      alert(t("template.sync.needDevServer"));
+      return;
+    }
+
+    pendingTemplateState.downloading = true;
+    refreshPendingTemplateListUi();
+    refreshTemplateSyncUi();
+
+    const title = item.clockName || t("template.item.file", { id });
+    openTemplateDownloadProgressDialog(t("template.pending.downloadingTitle", { name: title }));
+
+    try {
+      const result = await downloadSingleTemplateToLocal({
+        storeJson: divoomStoreJson,
+        divoomJson,
+        clockId: id,
+        classifyId: item.classifyId,
+        getSlotByItem: getTemplateSlotByItem,
+        isImageItem: isTemplateImageItem,
+        loadFontInfo: loadFontInfoJsonForSync,
+        checkFontFileExists: checkLocalFontBinExists,
+        loadClassifyCache: loadClassifyCacheJsonForSync,
+        getBaseClassifyData: getTemplateClassifyData,
+        fallbackClassifyData: TEMPLATE_CLASSIFY_FALLBACK,
+        origin: location.origin,
+        onProgress: (patch) => {
+          updateTemplateDownloadProgressDialog(
+            patch?.percent ?? 0,
+            patch?.message || ""
+          );
+        }
+      });
+
+      item.status = "installed";
+      setTemplateClassifyDataRuntime(result.classifyCache);
+      await loadTemplateClassifyCache();
+      await loadTemplateConfigIds();
+      await loadDefaultFontConfigs();
+      pendingTemplateState.activeClockId = id;
+      savePendingTemplateCacheNow();
+      await previewTemplateWatchface(id);
+      fontStore.log(t("template.pending.downloadDone", { id, name: title }));
+    } catch (e) {
+      const msg = t("template.pending.downloadFailed", { message: errorToText(e) });
+      alert(msg);
+      fontStore.log(msg);
+    } finally {
+      pendingTemplateState.downloading = false;
+      closeTemplateDownloadProgressDialog();
+      refreshPendingTemplateListUi();
+      refreshPendingTemplateCategoryUi();
+      refreshTemplateSyncUi();
+    }
+  }
+
+  async function openPendingTemplatePanel({ rescan = false } = {}) {
+    if (rescan) {
+      if (!resolveStoreApiDeviceId()) {
+        alert(t("template.sync.needDeviceId"));
+        refreshTemplateSyncUi();
+        return;
+      }
+      const apiOk = await isDevSyncApiAvailable();
+      if (!apiOk) {
+        alert(t("template.sync.needDevServer"));
+        return;
+      }
+    }
+
+    if (sidebarBrowseMode !== "template") {
+      await activateSidebarTemplateBrowse();
+    }
+    setTemplatePendingPanelVisible(true);
+
+    if (!rescan) {
+      if (!pendingTemplateState.classifyRows.length) {
+        const restored = await restorePendingTemplateFromStorage();
+        if (!restored) {
+          refreshPendingTemplateCategoryUi();
+          refreshPendingTemplateListUi();
+          refreshTemplateSyncUi();
+          return;
+        }
+      }
+      refreshPendingTemplateCategoryUi();
+      refreshPendingTemplateListUi();
+      refreshTemplateSyncUi();
+      return;
+    }
+
+    templateSyncState.scanning = true;
+    templateSyncState.error = "";
+    templateSyncState.message = "";
+    pendingTemplateState.scanning = true;
+    pendingTemplateState.error = "";
+    pendingTemplateState.scanMessage = "";
+    refreshPendingTemplateCategoryUi();
+    refreshPendingTemplateListUi();
+    refreshTemplateSyncUi();
+
+    try {
+      const { classifyRows, totalPending, catalogSource } = await scanPendingTemplatesFromDevice({
+        storeJson: divoomStoreJson,
+        loadExistingCfg: loadTemplateConfigByClockId,
+        language: pickSyncLanguage(getLocaleCode()),
+        onProgress: (patch) => {
+          const msg = String(patch?.message || patch?.phase || "");
+          templateSyncState.message = msg;
+          pendingTemplateState.scanMessage = msg;
+          refreshPendingTemplateListUi();
+          refreshTemplateSyncUi();
+        }
+      });
+
+      if (!totalPending) {
+        pendingTemplateState.classifyRows = [];
+        pendingTemplateState.savedAt = "";
+        pendingTemplateState.catalogSource = "";
+        savePendingTemplateCacheToStorage({ classifyRows: [] });
+        setTemplatePendingPanelVisible(false);
+        setTemplateSyncStatusText(t("template.pending.noneUpToDate"), "ok");
+        fontStore.log(t("template.pending.noneUpToDate"));
+        refreshViewPendingButtonUi();
+        return;
+      }
+
+      pendingTemplateState.classifyRows = classifyRows;
+      pendingTemplateState.catalogSource = String(catalogSource || "");
+      pendingTemplateState.savedAt = new Date().toISOString();
+      pendingTemplateState.selectedClassifyId = classifyRows[0]?.ClassifyId ?? null;
+      pendingTemplateState.activeClockId = null;
+      savePendingTemplateCacheNow();
+      const firstRow = getSelectedPendingClassifyRow();
+      const firstItem = firstRow?.items?.find((it) => it.status !== "installed");
+      if (firstItem) {
+        pendingTemplateState.activeClockId = firstItem.clockId;
+        void previewPendingTemplateIfAvailable(firstItem.clockId);
+      }
+      refreshPendingTemplateCategoryUi();
+      refreshPendingTemplateListUi();
+    } catch (e) {
+      pendingTemplateState.error = errorToText(e);
+      const msg = t("template.pending.scanFailed", { message: pendingTemplateState.error });
+      templateSyncState.error = msg;
+      setTemplateSyncStatusText(msg, "error");
+      fontStore.log(msg);
+    } finally {
+      templateSyncState.scanning = false;
+      pendingTemplateState.scanning = false;
+      refreshTemplateSyncUi();
+      refreshPendingTemplateListUi();
+    }
+  }
+
+  async function initPendingTemplateOnStartup() {
+    const restored = await restorePendingTemplateFromStorage();
+    refreshViewPendingButtonUi();
+    if (!restored || countPendingTemplateItems(pendingTemplateState.classifyRows) <= 0) return;
+
+    await activateSidebarTemplateBrowse();
+    setTemplatePendingPanelVisible(true);
+    refreshPendingTemplateCategoryUi();
+    refreshPendingTemplateListUi();
+    const firstRow = getSelectedPendingClassifyRow();
+    const firstItem = firstRow?.items?.find((it) => it.status !== "installed");
+    if (firstItem) {
+      pendingTemplateState.activeClockId = firstItem.clockId;
+      void previewPendingTemplateIfAvailable(firstItem.clockId);
+    }
+  }
+
+  function closeTemplatePendingPanel() {
+    savePendingTemplateCacheNow();
+    pendingTemplateState.error = "";
+    setTemplatePendingPanelVisible(false);
+    refreshTemplateListUi();
+    refreshViewPendingButtonUi();
+  }
+
+  function wireTemplateSyncUi() {
+    syncTemplateDomRefs();
+    if (dom.btnViewPendingTemplates) {
+      dom.btnViewPendingTemplates.addEventListener("click", () => {
+        if (dom.btnViewPendingTemplates.disabled || dom.btnViewPendingTemplates.hidden) return;
+        void openPendingTemplatePanel({ rescan: false });
+      });
+    }
+    if (dom.btnSyncTemplates) {
+      dom.btnSyncTemplates.addEventListener("click", () => {
+        if (dom.btnSyncTemplates.disabled) return;
+        void openPendingTemplatePanel({ rescan: true });
+      });
+    }
+    if (dom.btnTemplatePendingBack) {
+      dom.btnTemplatePendingBack.addEventListener("click", () => {
+        if (pendingTemplateState.downloading) return;
+        closeTemplatePendingPanel();
+      });
+    }
+    if (dom.templateDownloadDialog) {
+      dom.templateDownloadDialog.addEventListener("cancel", (e) => {
+        if (pendingTemplateState.downloading) e.preventDefault();
+      });
+    }
   }
 
   /**
@@ -5009,6 +5712,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     } finally {
       if (btn) btn.disabled = false;
       refreshLanActionButtons();
+      refreshTemplateSyncUi();
     }
   }
 
@@ -5034,6 +5738,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
         const row = lanDeviceRowsById.get(id);
         if (row) persistLanDeviceRow(row);
         refreshLanActionButtons();
+        refreshTemplateSyncUi();
       });
     }
   }
@@ -6672,6 +7377,36 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     ctx.fillText(`id=${meta.id} type=${meta.type} ${charset}`, 12, 110);
   }
 
+  async function loadFontInfoJsonForSync() {
+    const paths = [withBase("font/font_info.cfg"), "font/font_info.cfg"];
+    try {
+      return await loadFirstJson(paths);
+    } catch {
+      return null;
+    }
+  }
+
+  async function checkLocalFontBinExists(fontId) {
+    const fileNum = toNum(fontId, NaN) + 1;
+    if (!Number.isFinite(fileNum) || fileNum <= 0) return false;
+    const bases =
+      Array.isArray(runtime.fontBasePaths) && runtime.fontBasePaths.length
+        ? runtime.fontBasePaths
+        : [withBase("font/")];
+    for (const base of bases) {
+      for (const name of [`${fileNum}.bin`, `${fileNum}.BIN`]) {
+        try {
+          const url = `${ensureSlash(base)}${name}`;
+          const res = await fetch(url, { method: "HEAD", cache: "no-store" });
+          if (res.ok) return true;
+        } catch {
+          /* try next */
+        }
+      }
+    }
+    return false;
+  }
+
   async function loadDefaultFontConfigs() {
     try {
       const cfgCandidates = [];
@@ -6919,6 +7654,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
 
     wireLanDeviceUi();
     wireLanUi();
+    wireTemplateSyncUi();
   }
 
   async function warnIfFileProtocolBlocked() {
@@ -7001,7 +7737,10 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       { once: true }
     );
     loadDefaultFontConfigs();
-    loadTemplateConfigIds();
+    await loadTemplateClassifyCache();
+    await loadTemplateConfigIds();
+    await initPendingTemplateOnStartup();
+    refreshTemplateSyncUi();
     void warnIfFileProtocolBlocked();
   }
 

@@ -83,19 +83,36 @@
     </aside>
 
     <aside class="panel left-panel panel-template-shell" id="panel-template-shell" hidden>
-      <section class="template-browse-card">
+      <section class="template-browse-card" id="template-browse-card">
         <div class="template-browse-head">
           <div>
             <h2 id="lbl-template-category">模板分类</h2>
             <div id="template-hint" class="template-browse-hint"></div>
           </div>
           <div class="btn-row sidebar-template-actions">
+            <button id="btn-view-pending-templates" type="button" class="btn-ghost btn-view-pending-templates" hidden></button>
+            <button id="btn-sync-templates" type="button" class="btn-ghost btn-sync-templates"></button>
             <button id="btn-apply-template" type="button" class="btn-primary"></button>
           </div>
+          <div id="template-sync-status" class="template-sync-status" hidden aria-live="polite"></div>
         </div>
         <select id="select-template-category" hidden></select>
         <div id="template-category-rail" class="template-category-rail" role="tablist" aria-label="模板分类"></div>
         <ul id="template-list" class="template-list template-list-with-thumb template-list-fill"></ul>
+      </section>
+
+      <section class="template-pending-card" id="template-pending-card" hidden>
+        <div class="template-browse-head">
+          <div>
+            <h2 id="lbl-template-pending">待下载模板</h2>
+            <div id="template-pending-hint" class="template-browse-hint"></div>
+          </div>
+          <div class="btn-row sidebar-template-actions">
+            <button id="btn-template-pending-back" type="button" class="btn-ghost"></button>
+          </div>
+        </div>
+        <div id="template-pending-category-rail" class="template-category-rail" role="tablist" aria-label="待下载模板分类"></div>
+        <ul id="template-pending-list" class="template-list template-list-with-thumb template-list-fill template-pending-list"></ul>
       </section>
     </aside>
 
@@ -191,6 +208,12 @@
       <button type="button" id="about-admin-exit" class="btn-ghost" hidden></button>
       <button type="button" id="about-close" class="btn-primary"></button>
     </div>
+  </dialog>
+
+  <dialog id="template-download-dialog" class="lan-dialog template-download-dialog">
+    <h3 id="template-download-title" class="lan-dialog-title"></h3>
+    <progress id="template-download-progress" class="template-download-progress" max="100" value="0"></progress>
+    <p id="template-download-status" class="template-download-status" aria-live="polite"></p>
   </dialog>
 
   <dialog id="admin-password-dialog" class="lan-dialog admin-password-dialog">
