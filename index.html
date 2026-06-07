@@ -37,6 +37,8 @@
         <button id="btn-lan-create-on-device" type="button" class="btn-ghost btn-lan"></button>
         <button id="btn-lan-apply-config" type="button" class="btn-lan" disabled></button>
         <button id="btn-lan-show-current-clock" type="button" class="btn-lan" hidden></button>
+        <button id="btn-view-pending-fonts" type="button" class="btn-ghost btn-view-pending-fonts" hidden></button>
+        <button id="btn-sync-fonts" type="button" class="btn-ghost btn-sync-fonts"></button>
       </div>
       <label class="lang-switch" for="select-lang">
         <span id="lbl-lang">语言</span>
@@ -207,6 +209,22 @@
     <div class="lan-dialog-actions">
       <button type="button" id="about-admin-exit" class="btn-ghost" hidden></button>
       <button type="button" id="about-close" class="btn-primary"></button>
+    </div>
+  </dialog>
+
+  <dialog id="font-pending-dialog" class="lan-dialog font-pending-dialog">
+    <h3 id="font-pending-title" class="lan-dialog-title"></h3>
+    <p id="font-pending-hint" class="hint font-pending-hint"></p>
+    <div class="btn-row font-pending-toolbar">
+      <button id="btn-font-pending-select-all" type="button" class="btn-ghost"></button>
+      <button id="btn-font-pending-select-none" type="button" class="btn-ghost"></button>
+    </div>
+    <ul id="font-pending-list" class="font-pending-list"></ul>
+    <progress id="font-download-progress" class="template-download-progress" max="100" value="0" hidden></progress>
+    <p id="font-download-status" class="template-download-status hint" aria-live="polite"></p>
+    <div class="lan-dialog-actions">
+      <button type="button" id="btn-font-pending-cancel" class="btn-ghost"></button>
+      <button type="button" id="btn-font-pending-download" class="btn-primary"></button>
     </div>
   </dialog>
 

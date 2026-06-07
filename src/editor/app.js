@@ -23,6 +23,16 @@ import { isDevSyncApiAvailable, saveClassifyCacheViaApi } from "./devSyncApi.js"
 import { createDivoomChinaStoreJson } from "./divoomCloudApi.js";
 import { buildDivoomLanEnvelope } from "./divoomLanJson.js";
 import {
+  downloadSelectedFontsToLocal,
+  scanPendingFontsFromStore
+} from "./fontCloudSync.js";
+import {
+  countPendingFontItems,
+  loadPendingFontCacheFromStorage,
+  reconcilePendingFontItems,
+  savePendingFontCacheToStorage
+} from "./pendingFontCache.js";
+import {
   countPendingTemplateItems,
   loadPendingTemplateCacheFromStorage,
   reconcilePendingClassifyRows,
@@ -2080,6 +2090,18 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     btnApplyTemplate: byId("btn-apply-template"),
     btnViewPendingTemplates: byId("btn-view-pending-templates"),
     btnSyncTemplates: byId("btn-sync-templates"),
+    btnViewPendingFonts: byId("btn-view-pending-fonts"),
+    btnSyncFonts: byId("btn-sync-fonts"),
+    fontPendingDialog: byId("font-pending-dialog"),
+    fontPendingTitle: byId("font-pending-title"),
+    fontPendingHint: byId("font-pending-hint"),
+    fontPendingList: byId("font-pending-list"),
+    btnFontPendingSelectAll: byId("btn-font-pending-select-all"),
+    btnFontPendingSelectNone: byId("btn-font-pending-select-none"),
+    btnFontPendingCancel: byId("btn-font-pending-cancel"),
+    btnFontPendingDownload: byId("btn-font-pending-download"),
+    fontDownloadProgress: byId("font-download-progress"),
+    fontDownloadStatus: byId("font-download-status"),
     templateSyncStatus: byId("template-sync-status"),
     templateBrowseCard: byId("template-browse-card"),
     templatePendingCard: byId("template-pending-card"),
@@ -2699,6 +2721,20 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       setNodeText(dom.btnSyncTemplates, t("template.btn.sync"));
       dom.btnSyncTemplates.title = t("template.btn.syncTitle");
     }
+    if (dom.btnViewPendingFonts) {
+      const fontPendingCount = countPendingFontItems(pendingFontState.items);
+      setNodeText(dom.btnViewPendingFonts, t("font.btn.viewPending", { count: fontPendingCount }));
+      dom.btnViewPendingFonts.title = t("font.btn.viewPendingTitle");
+    }
+    if (dom.btnSyncFonts) {
+      setNodeText(dom.btnSyncFonts, t("font.btn.sync"));
+      dom.btnSyncFonts.title = t("font.btn.syncTitle");
+    }
+    if (dom.fontPendingTitle) setNodeText(dom.fontPendingTitle, t("font.pending.title"));
+    if (dom.btnFontPendingSelectAll) setNodeText(dom.btnFontPendingSelectAll, t("font.pending.selectAll"));
+    if (dom.btnFontPendingSelectNone) setNodeText(dom.btnFontPendingSelectNone, t("font.pending.selectNone"));
+    if (dom.btnFontPendingCancel) setNodeText(dom.btnFontPendingCancel, t("font.pending.cancel"));
+    if (dom.btnFontPendingDownload) setNodeText(dom.btnFontPendingDownload, t("font.pending.downloadSelected"));
     if (dom.lblTemplatePending) setNodeText(dom.lblTemplatePending, t("template.pending.title"));
     if (dom.btnTemplatePendingBack) setNodeText(dom.btnTemplatePendingBack, t("template.pending.back"));
     if (dom.templateDownloadTitle && !pendingTemplateState.downloading) {
@@ -4113,6 +4149,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     } else if (!pendingTemplateState.active) {
       setTemplateSyncStatusText("");
     }
+    refreshFontSyncButtonUi();
   }
 
   function setTemplatePendingPanelVisible(on) {
@@ -4533,6 +4570,358 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     setTemplatePendingPanelVisible(false);
     refreshTemplateListUi();
     refreshViewPendingButtonUi();
+  }
+
+  const pendingFontState = {
+    scanning: false,
+    downloading: false,
+    error: "",
+    scanMessage: "",
+    items: [],
+    savedAt: ""
+  };
+
+  function savePendingFontCacheNow() {
+    savePendingFontCacheToStorage({
+      items: pendingFontState.items,
+      savedAt: pendingFontState.savedAt || new Date().toISOString()
+    });
+    refreshViewPendingFontButtonUi();
+  }
+
+  async function restorePendingFontFromStorage() {
+    const cached = loadPendingFontCacheFromStorage();
+    if (!cached) return false;
+    const { items } = await reconcilePendingFontItems(cached.items, {
+      loadFontInfo: loadFontInfoJsonForSync,
+      checkFontFileExists: checkLocalFontBinExists
+    });
+    if (!items.length) {
+      savePendingFontCacheToStorage({ items: [] });
+      pendingFontState.items = [];
+      pendingFontState.savedAt = "";
+      return false;
+    }
+    pendingFontState.items = items;
+    pendingFontState.savedAt = cached.savedAt || "";
+    pendingFontState.error = "";
+    savePendingFontCacheNow();
+    return true;
+  }
+
+  function refreshViewPendingFontButtonUi() {
+    const btn = dom.btnViewPendingFonts;
+    if (!btn) return;
+    const count = countPendingFontItems(pendingFontState.items);
+    btn.hidden = count <= 0;
+    const busy = pendingFontState.scanning || pendingFontState.downloading;
+    btn.disabled = busy;
+    setNodeText(btn, t("font.btn.viewPending", { count }));
+    btn.title = t("font.btn.viewPendingTitle");
+  }
+
+  function refreshFontSyncButtonUi() {
+    const btn = dom.btnSyncFonts;
+    if (!btn) return;
+    const hasStoreDeviceId = resolveStoreApiDeviceId() > 0;
+    const busy = pendingFontState.scanning || pendingFontState.downloading;
+    btn.disabled = busy || !hasStoreDeviceId;
+    setNodeText(btn, t("font.btn.sync"));
+    btn.title = t("font.btn.syncTitle");
+    refreshViewPendingFontButtonUi();
+  }
+
+  function pendingFontReasonLabel(reason) {
+    if (reason === "file_missing") return t("font.pending.reasonFileMissing");
+    if (reason === "outdated") return t("font.pending.reasonOutdated");
+    return t("font.pending.reasonMissing");
+  }
+
+  function getSelectedPendingFontItems() {
+    return (pendingFontState.items || []).filter(
+      (it) => it.status !== "installed" && it.selected !== false
+    );
+  }
+
+  function refreshPendingFontDialogUi() {
+    if (!dom.fontPendingList || !dom.fontPendingHint) return;
+    const list = dom.fontPendingList;
+    list.innerHTML = "";
+
+    if (pendingFontState.scanning) {
+      dom.fontPendingHint.textContent = t("font.pending.scanning", {
+        message: pendingFontState.scanMessage || "…"
+      });
+      return;
+    }
+    if (pendingFontState.error) {
+      dom.fontPendingHint.textContent = t("font.pending.scanFailed", {
+        message: pendingFontState.error
+      });
+      return;
+    }
+
+    const visible = (pendingFontState.items || []).filter((it) => it.status !== "installed");
+    if (!visible.length) {
+      dom.fontPendingHint.textContent = t("font.pending.empty");
+      return;
+    }
+
+    const savedLabel = formatPendingCacheSavedAt(pendingFontState.savedAt);
+    dom.fontPendingHint.textContent = savedLabel
+      ? t("font.pending.restored", { time: savedLabel })
+      : t("font.pending.hint", { count: visible.length });
+
+    for (const item of visible) {
+      const li = document.createElement("li");
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = item.selected !== false;
+      cb.disabled = pendingFontState.downloading;
+      cb.addEventListener("change", () => {
+        item.selected = cb.checked;
+        savePendingFontCacheNow();
+      });
+
+      const idEl = document.createElement("span");
+      idEl.className = "font-pending-id";
+      idEl.textContent = `#${item.id}`;
+
+      const metaEl = document.createElement("span");
+      metaEl.className = "font-pending-meta";
+      const typeTag = toNum(item.type, 1) === 0 ? "[IMG]" : "[TTF]";
+      metaEl.textContent = `${typeTag} ${item.name || `Font ${item.id}`}`;
+
+      const badge = document.createElement("span");
+      badge.className = `font-pending-badge is-${item.reason || "missing"}`;
+      badge.textContent = pendingFontReasonLabel(item.reason);
+
+      label.append(cb, idEl, metaEl, badge);
+      li.append(label);
+      list.appendChild(li);
+    }
+
+    if (dom.btnFontPendingDownload) {
+      dom.btnFontPendingDownload.disabled =
+        pendingFontState.downloading || getSelectedPendingFontItems().length === 0;
+    }
+    if (dom.btnFontPendingSelectAll) dom.btnFontPendingSelectAll.disabled = pendingFontState.downloading;
+    if (dom.btnFontPendingSelectNone) dom.btnFontPendingSelectNone.disabled = pendingFontState.downloading;
+  }
+
+  function openFontPendingDialog() {
+    const dlg = dom.fontPendingDialog;
+    if (!dlg) return;
+    refreshPendingFontDialogUi();
+    if (dlg.open) return;
+    if (typeof dlg.showModal === "function") {
+      try {
+        dlg.showModal();
+      } catch (e) {
+        fontStore.log(`font pending dialog: ${errorToText(e)}`);
+      }
+    }
+  }
+
+  function closeFontPendingDialog() {
+    savePendingFontCacheNow();
+    if (dom.fontDownloadProgress) dom.fontDownloadProgress.hidden = true;
+    if (dom.fontDownloadStatus) dom.fontDownloadStatus.textContent = "";
+    dom.fontPendingDialog?.close?.();
+  }
+
+  function notifyFontLibraryUpToDate() {
+    closeFontPendingDialog();
+    showLanCenteredMessage(t("font.pending.noneUpToDate"));
+    fontStore.log(t("font.pending.noneUpToDate"));
+    refreshFontSyncButtonUi();
+  }
+
+  async function openPendingFontPanel({ rescan = false } = {}) {
+    if (rescan) {
+      if (!resolveStoreApiDeviceId()) {
+        alert(t("template.sync.needDeviceId"));
+        refreshFontSyncButtonUi();
+        return;
+      }
+    }
+
+    if (!rescan) {
+      if (!pendingFontState.items.length) {
+        const restored = await restorePendingFontFromStorage();
+        if (!restored) {
+          notifyFontLibraryUpToDate();
+          return;
+        }
+      }
+      if (!countPendingFontItems(pendingFontState.items)) {
+        notifyFontLibraryUpToDate();
+        return;
+      }
+      openFontPendingDialog();
+      return;
+    }
+
+    pendingFontState.scanning = true;
+    pendingFontState.error = "";
+    pendingFontState.scanMessage = t("font.btn.sync");
+    refreshFontSyncButtonUi();
+
+    try {
+      const { items } = await scanPendingFontsFromStore({
+        storeJson: divoomStoreJson,
+        loadFontInfo: loadFontInfoJsonForSync,
+        checkFontFileExists: checkLocalFontBinExists
+      });
+      if (!items.length) {
+        pendingFontState.items = [];
+        pendingFontState.savedAt = "";
+        savePendingFontCacheToStorage({ items: [] });
+        notifyFontLibraryUpToDate();
+        return;
+      }
+      pendingFontState.items = items;
+      pendingFontState.savedAt = new Date().toISOString();
+      savePendingFontCacheNow();
+      openFontPendingDialog();
+      refreshPendingFontDialogUi();
+    } catch (e) {
+      pendingFontState.error = errorToText(e);
+      fontStore.log(t("font.pending.scanFailed", { message: pendingFontState.error }));
+      openFontPendingDialog();
+      refreshPendingFontDialogUi();
+    } finally {
+      pendingFontState.scanning = false;
+      pendingFontState.scanMessage = "";
+      refreshFontSyncButtonUi();
+      refreshPendingFontDialogUi();
+    }
+  }
+
+  async function downloadSelectedPendingFonts() {
+    const selected = getSelectedPendingFontItems();
+    if (!selected.length) {
+      alert(t("font.pending.noneSelected"));
+      return;
+    }
+    const apiOk = await isDevSyncApiAvailable();
+    if (!apiOk) {
+      alert(t("font.pending.needDevServer"));
+      return;
+    }
+
+    pendingFontState.downloading = true;
+    refreshPendingFontDialogUi();
+    refreshFontSyncButtonUi();
+    if (dom.fontDownloadProgress) {
+      dom.fontDownloadProgress.hidden = false;
+      dom.fontDownloadProgress.value = 0;
+    }
+    if (dom.fontDownloadStatus) dom.fontDownloadStatus.textContent = t("font.pending.downloading");
+
+    try {
+      const result = await downloadSelectedFontsToLocal({
+        items: selected,
+        loadFontInfo: loadFontInfoJsonForSync,
+        origin: location.origin,
+        onProgress: (patch) => {
+          const total = Number(patch?.total) || selected.length;
+          const index = Number(patch?.index) || 0;
+          const pct = total > 0 ? Math.floor((100 * index) / total) : 0;
+          if (dom.fontDownloadProgress) dom.fontDownloadProgress.value = pct;
+          if (dom.fontDownloadStatus) {
+            dom.fontDownloadStatus.textContent = String(patch?.message || t("font.pending.downloading"));
+          }
+        }
+      });
+
+      const installedIds = new Set(selected.map((it) => Number(it.id)));
+      pendingFontState.items = pendingFontState.items
+        .map((it) => (installedIds.has(Number(it.id)) ? { ...it, status: "installed" } : it))
+        .filter((it) => it.status !== "installed");
+      pendingFontState.savedAt = new Date().toISOString();
+      savePendingFontCacheNow();
+      await loadDefaultFontConfigs();
+      refreshFontPreviewSelect();
+      renderFontPreview();
+
+      const msg = t("font.pending.downloadDone", {
+        written: result.filesWritten,
+        failed: result.filesFailed
+      });
+      if (dom.fontDownloadStatus) dom.fontDownloadStatus.textContent = msg;
+      fontStore.log(msg);
+      if (!pendingFontState.items.length) {
+        notifyFontLibraryUpToDate();
+      } else {
+        refreshPendingFontDialogUi();
+      }
+    } catch (e) {
+      const msg = t("font.pending.downloadFailed", { message: errorToText(e) });
+      alert(msg);
+      fontStore.log(msg);
+    } finally {
+      pendingFontState.downloading = false;
+      if (dom.fontDownloadProgress) dom.fontDownloadProgress.hidden = true;
+      refreshFontSyncButtonUi();
+      refreshPendingFontDialogUi();
+    }
+  }
+
+  async function initPendingFontsOnStartup() {
+    await restorePendingFontFromStorage();
+    refreshFontSyncButtonUi();
+  }
+
+  function wireFontSyncUi() {
+    if (dom.btnViewPendingFonts) {
+      dom.btnViewPendingFonts.addEventListener("click", () => {
+        if (dom.btnViewPendingFonts.disabled || dom.btnViewPendingFonts.hidden) return;
+        void openPendingFontPanel({ rescan: false });
+      });
+    }
+    if (dom.btnSyncFonts) {
+      dom.btnSyncFonts.addEventListener("click", () => {
+        if (dom.btnSyncFonts.disabled) return;
+        void openPendingFontPanel({ rescan: true });
+      });
+    }
+    if (dom.btnFontPendingSelectAll) {
+      dom.btnFontPendingSelectAll.addEventListener("click", () => {
+        for (const item of pendingFontState.items) {
+          if (item.status !== "installed") item.selected = true;
+        }
+        savePendingFontCacheNow();
+        refreshPendingFontDialogUi();
+      });
+    }
+    if (dom.btnFontPendingSelectNone) {
+      dom.btnFontPendingSelectNone.addEventListener("click", () => {
+        for (const item of pendingFontState.items) {
+          if (item.status !== "installed") item.selected = false;
+        }
+        savePendingFontCacheNow();
+        refreshPendingFontDialogUi();
+      });
+    }
+    if (dom.btnFontPendingCancel) {
+      dom.btnFontPendingCancel.addEventListener("click", () => {
+        if (pendingFontState.downloading) return;
+        closeFontPendingDialog();
+      });
+    }
+    if (dom.btnFontPendingDownload) {
+      dom.btnFontPendingDownload.addEventListener("click", () => {
+        if (pendingFontState.downloading) return;
+        void downloadSelectedPendingFonts();
+      });
+    }
+    if (dom.fontPendingDialog) {
+      dom.fontPendingDialog.addEventListener("cancel", (e) => {
+        if (pendingFontState.downloading) e.preventDefault();
+      });
+    }
   }
 
   function wireTemplateSyncUi() {
@@ -7655,6 +8044,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     wireLanDeviceUi();
     wireLanUi();
     wireTemplateSyncUi();
+    wireFontSyncUi();
   }
 
   async function warnIfFileProtocolBlocked() {
@@ -7740,6 +8130,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     await loadTemplateClassifyCache();
     await loadTemplateConfigIds();
     await initPendingTemplateOnStartup();
+    await initPendingFontsOnStartup();
     refreshTemplateSyncUi();
     void warnIfFileProtocolBlocked();
   }

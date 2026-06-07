@@ -1047,6 +1047,79 @@ button:disabled {
   color: #9eb7e8;
 }
 
+.font-pending-dialog {
+  width: min(520px, 92vw);
+  max-height: 85vh;
+}
+
+.font-pending-list {
+  list-style: none;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0;
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  border: 1px solid var(--border-subtle, #2e3f61);
+  border-radius: 8px;
+}
+
+.font-pending-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border-subtle, #243049);
+}
+
+.font-pending-list li:last-child {
+  border-bottom: none;
+}
+
+.font-pending-list label {
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+  align-items: flex-start;
+  cursor: pointer;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.font-pending-list .font-pending-id {
+  font-family: ui-monospace, monospace;
+  color: var(--text-muted, #8fa5ce);
+  min-width: 2.5rem;
+}
+
+.font-pending-list .font-pending-meta {
+  flex: 1;
+}
+
+.font-pending-list .font-pending-badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.font-pending-list .font-pending-badge.is-missing {
+  background: rgba(255, 154, 168, 0.15);
+  color: #ff9aa8;
+}
+
+.font-pending-list .font-pending-badge.is-file_missing {
+  background: rgba(255, 200, 120, 0.15);
+  color: #ffc878;
+}
+
+.font-pending-list .font-pending-badge.is-outdated {
+  background: rgba(120, 180, 255, 0.15);
+  color: #9ec5ff;
+}
+
+.font-pending-toolbar {
+  margin-top: 0.25rem;
+}
+
 .template-download-dialog {
   min-width: 320px;
   max-width: 420px;

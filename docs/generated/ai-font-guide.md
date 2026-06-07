@@ -1,6 +1,6 @@
 # Divoom 表盘字体 AI 使用指南
 
-> 自动生成于 `2026-06-07T08:17:19.596Z`，数据源 `public/font/font_info.cfg`。
+> 自动生成于 `2026-06-07T08:34:30.768Z`，数据源 `public/font/font_info.cfg`。
 > 共 **157** 款字体：矢量 TTF **123** 款，位图字图集 **34** 款。
 > 机器可读 ID 列表见同目录 `ai-font-catalog.json`。
 
