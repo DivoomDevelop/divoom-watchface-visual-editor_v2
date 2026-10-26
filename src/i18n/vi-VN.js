@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const viVN = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Trình chỉnh sửa xem trước mặt đồng hồ Divoom trên PC",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Tải JSON mặt đồng hồ, xem trước và chỉnh sửa trên PC trước khi gửi xuống thiết bị.",
   "ui.language": "Ngôn ngữ",
   "ui.sec.config": "1) Cấu hình mặt đồng hồ",
-  "ui.sec.canvas": "2) Canvas",
+  "ui.sec.canvas": "Canvas",
   "ui.sec.background": "Nền mặt đồng hồ",
-  "ui.sec.items": "3) Phần tử hiển thị (ItemList)",
-  "ui.sec.editor": "4) Chỉnh sửa phần tử đã chọn",
+  "ui.sec.items": "Phần tử hiển thị (ItemList)",
+  "ui.sec.editor": "Chỉnh sửa phần tử đã chọn",
   "ui.label.loadConfig": "Tải cấu hình mặt đồng hồ (JSON)",
   "ui.label.pasteJson": "Hoặc dán JSON",
   "ui.label.width": "Chiều rộng",

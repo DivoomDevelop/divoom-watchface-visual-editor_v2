@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const esES = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Editor PC de vista previa de esfera Divoom",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Carga el JSON de la esfera, previsualiza y edita en PC antes de enviarlo al dispositivo.",
   "ui.language": "Idioma",
   "ui.sec.config": "1) Configuración de la esfera",
-  "ui.sec.canvas": "2) Lienzo",
+  "ui.sec.canvas": "Lienzo",
   "ui.sec.background": "Fondo de la esfera",
-  "ui.sec.items": "3) Elementos de visualización (ItemList)",
-  "ui.sec.editor": "4) Edición del elemento seleccionado",
+  "ui.sec.items": "Elementos de visualización (ItemList)",
+  "ui.sec.editor": "Edición del elemento seleccionado",
   "ui.label.loadConfig": "Cargar configuración de esfera (JSON)",
   "ui.label.pasteJson": "O pegar JSON",
   "ui.label.width": "Ancho",

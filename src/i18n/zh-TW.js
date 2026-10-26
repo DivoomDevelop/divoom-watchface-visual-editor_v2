@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const zhTW = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Divoom 錶盤 PC 預覽與編輯器",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "載入錶盤 JSON，在 PC 上預覽並編輯後再下發到裝置。",
   "ui.language": "語言",
   "ui.sec.config": "1) 錶盤設定",
-  "ui.sec.canvas": "2) 畫布",
+  "ui.sec.canvas": "畫布",
   "ui.sec.background": "表盤底圖",
-  "ui.sec.items": "3) 顯示元素 (ItemList)",
-  "ui.sec.editor": "4) 選中元素編輯",
+  "ui.sec.items": "顯示元素 (ItemList)",
+  "ui.sec.editor": "選中元素編輯",
   "ui.label.loadConfig": "載入錶盤設定 (JSON)",
   "ui.label.pasteJson": "或貼上 JSON",
   "ui.label.width": "寬度",

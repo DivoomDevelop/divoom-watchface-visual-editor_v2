@@ -1,0 +1,4 @@
+#!/bin/sh
+# Auto-increment version.json build number on each commit.
+node scripts/bump-version.mjs
+git add version.json

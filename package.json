@@ -1,7 +1,10 @@
 {
-  "name": "divoom-watchface-visual-editor-v2",
+  "name": "divoom-watchface-visual-editor-timeframe",
+  "productName": "TimeFrame Watchface Editor",
   "version": "0.1.0",
-  "description": "Divoom watchface visual editor v2 (Vite + static templates)",
+  "description": "Divoom TimeFrame watchface visual editor (800×1280)",
+  "author": "DivoomDevelop",
+  "main": "desktop/main.cjs",
   "private": true,
   "repository": {
     "type": "git",
@@ -14,13 +17,32 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "npm run gen:ai-docs",
+    "prebuild": "node scripts/bundle-demo-templates.mjs --check && npm run gen:ai-docs",
+    "templates:check": "node scripts/bundle-demo-templates.mjs --check",
+    "templates:download": "node scripts/bundle-demo-templates.mjs",
     "build": "vite build",
+    "postbuild": "node scripts/bundle-desktop-assets.mjs",
     "preview": "vite preview",
+    "desktop:start": "npm run build && electron .",
+    "desktop:make": "npm run build && electron-builder --config electron-builder.config.cjs --publish never",
+    "desktop:icons": "electron scripts/create-desktop-icons.cjs",
+    "desktop:make:win": "npm run build && electron-builder --config electron-builder.config.cjs --win nsis --x64 --publish never",
+    "desktop:make:mac": "npm run build && electron-builder --config electron-builder.config.cjs --mac dmg --publish never",
+    "desktop:make:mac:test": "npm run build && electron-builder --config electron-builder.mac-test.config.cjs --mac dmg --publish never",
+    "test:desktop": "node --test scripts/test-desktop-*.cjs",
+    "desktop:smoke": "electron scripts/smoke-desktop.cjs",
+    "desktop:smoke:templates": "electron scripts/smoke-bundled-templates.cjs",
+    "desktop:verify": "node scripts/verify-packaged-assets.cjs",
+    "version:bump": "node scripts/bump-version.mjs",
+    "install:git-hooks": "node scripts/install-git-hooks.mjs",
+    "prepare": "node scripts/install-git-hooks.mjs",
     "gen:ai-docs": "node scripts/gen-ai-docs.mjs",
     "lan:probe": "node scripts/lan-probe.mjs"
   },
   "devDependencies": {
+    "@electron/asar": "3.4.1",
+    "electron": "41.3.0",
+    "electron-builder": "26.15.3",
     "http-proxy": "^1.18.1",
     "vite": "^6.3.5"
   }

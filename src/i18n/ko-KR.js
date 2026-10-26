@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const koKR = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Divoom 워치페이스 PC 미리보기 편집기",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "워치페이스 JSON을 불러와 PC에서 미리보기/편집한 뒤 기기로 전송합니다.",
   "ui.language": "언어",
   "ui.sec.config": "1) 워치페이스 설정",
-  "ui.sec.canvas": "2) 캔버스",
+  "ui.sec.canvas": "캔버스",
   "ui.sec.background": "워치페이스 배경",
-  "ui.sec.items": "3) 표시 항목 (ItemList)",
-  "ui.sec.editor": "4) 선택 항목 편집",
+  "ui.sec.items": "표시 항목 (ItemList)",
+  "ui.sec.editor": "선택 항목 편집",
   "ui.label.loadConfig": "워치페이스 설정 불러오기 (JSON)",
   "ui.label.pasteJson": "또는 JSON 붙여넣기",
   "ui.label.width": "너비",

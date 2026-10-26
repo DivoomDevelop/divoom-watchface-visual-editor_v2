@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Divoom 表盘 PC 预览与编辑器</title>
+  <title>TimeFrame Studio</title>
 </head>
 <body class="page-root">
   <div id="file-protocol-banner" class="file-protocol-banner" hidden>
@@ -19,7 +19,7 @@
 
   <header class="topbar">
     <div class="title-wrap">
-      <h1 id="app-title">Divoom 表盘 PC 预览与编辑器</h1>
+      <h1 id="app-title">TimeFrame Studio</h1>
       <p id="app-subtitle">加载表盘 JSON，在 PC 上预览并编辑后再下发设备。</p>
     </div>
     <div id="app-mode-strip" class="app-mode-strip" role="tablist" aria-label="Page mode">
@@ -51,7 +51,8 @@
 
   <main class="layout layout-mode-local" id="main-layout">
     <aside class="panel left-panel" id="panel-local-shell">
-      <section class="card">
+      <section class="card local-library-card">
+        <h2 id="sec-local-watch-title">我的设计</h2>
         <div class="btn-row">
           <button id="btn-new-watchface" type="button"></button>
         </div>
@@ -59,18 +60,23 @@
         <ul id="local-watchface-list" class="template-list local-watchface-list"></ul>
       </section>
 
-      <section class="card">
+      <section class="card asset-card">
         <h2 id="sec-background-title">表盘底图</h2>
-        <div class="field-row">
-          <label id="lbl-input-bg-file" for="input-bg-file">选择底图</label>
-          <input id="input-bg-file" type="file" accept="image/*" />
-        </div>
-        <div class="field-row">
-          <label id="lbl-bg-source-path" for="txt-bg-source-path">底图路径</label>
-          <input id="txt-bg-source-path" type="text" readonly class="bg-source-path" autocomplete="off" spellcheck="false" />
-        </div>
-        <div class="btn-row">
-          <button id="btn-clear-bg" type="button">清除底图</button>
+        <div class="asset-card__body">
+          <div class="resource-preview"><img id="bg-resource-preview" alt="" hidden /></div>
+          <div class="asset-card__fields">
+            <div class="field-row">
+              <label id="lbl-input-bg-file" for="input-bg-file">选择底图</label>
+              <input id="input-bg-file" type="file" accept="image/*" />
+            </div>
+            <div class="field-row">
+              <label id="lbl-bg-source-path" for="txt-bg-source-path">底图路径</label>
+              <input id="txt-bg-source-path" type="text" readonly class="bg-source-path" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="btn-row">
+              <button id="btn-clear-bg" type="button">清除底图</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -88,33 +94,14 @@
       <section class="template-browse-card" id="template-browse-card">
         <div class="template-browse-head">
           <div>
-            <h2 id="lbl-template-category">模板分类</h2>
+            <h2 id="lbl-template-category">内置模板</h2>
             <div id="template-hint" class="template-browse-hint"></div>
           </div>
           <div class="btn-row sidebar-template-actions">
-            <button id="btn-view-pending-templates" type="button" class="btn-ghost btn-view-pending-templates" hidden></button>
-            <button id="btn-sync-templates" type="button" class="btn-ghost btn-sync-templates"></button>
             <button id="btn-apply-template" type="button" class="btn-primary"></button>
           </div>
-          <div id="template-sync-status" class="template-sync-status" hidden aria-live="polite"></div>
         </div>
-        <select id="select-template-category" hidden></select>
-        <div id="template-category-rail" class="template-category-rail" role="tablist" aria-label="模板分类"></div>
         <ul id="template-list" class="template-list template-list-with-thumb template-list-fill"></ul>
-      </section>
-
-      <section class="template-pending-card" id="template-pending-card" hidden>
-        <div class="template-browse-head">
-          <div>
-            <h2 id="lbl-template-pending">待下载模板</h2>
-            <div id="template-pending-hint" class="template-browse-hint"></div>
-          </div>
-          <div class="btn-row sidebar-template-actions">
-            <button id="btn-template-pending-back" type="button" class="btn-ghost"></button>
-          </div>
-        </div>
-        <div id="template-pending-category-rail" class="template-category-rail" role="tablist" aria-label="待下载模板分类"></div>
-        <ul id="template-pending-list" class="template-list template-list-with-thumb template-list-fill template-pending-list"></ul>
       </section>
     </aside>
 
@@ -234,14 +221,24 @@
     <p id="template-download-status" class="template-download-status" aria-live="polite"></p>
   </dialog>
 
-  <dialog id="admin-password-dialog" class="lan-dialog admin-password-dialog">
-    <h3 id="admin-password-title" class="lan-dialog-title"></h3>
-    <p id="admin-password-caption" class="hint"></p>
+  <dialog id="admin-password-dialog" class="lan-dialog admin-password-dialog" aria-labelledby="admin-password-title" aria-describedby="admin-password-caption">
+    <div class="admin-password-header">
+      <span class="admin-password-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="10" width="14" height="11" rx="3" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
+        </svg>
+      </span>
+      <div>
+        <h3 id="admin-password-title" class="lan-dialog-title"></h3>
+        <p id="admin-password-caption" class="admin-password-caption"></p>
+      </div>
+    </div>
     <label class="lan-dialog-field" id="admin-password-field-row">
       <span id="admin-password-label-text"></span>
-      <input id="admin-password-input" type="password" autocomplete="off" maxlength="128" />
+      <input id="admin-password-input" type="password" autocomplete="off" maxlength="128" aria-describedby="admin-password-status" autofocus />
     </label>
-    <p id="admin-password-status" class="hint admin-password-status" aria-live="polite"></p>
+    <p id="admin-password-status" class="admin-password-status" aria-live="polite"></p>
     <div class="lan-dialog-actions">
       <button type="button" id="admin-password-cancel" class="btn-ghost"></button>
       <button type="button" id="admin-password-submit" class="btn-primary"></button>

@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const trTR = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Divoom Saat Kadranı PC Önizleme Düzenleyicisi",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Saat kadranı JSON'unu yükleyin, cihaza göndermeden önce PC'de önizleyip düzenleyin.",
   "ui.language": "Dil",
   "ui.sec.config": "1) Saat kadranı yapılandırması",
-  "ui.sec.canvas": "2) Tuval",
+  "ui.sec.canvas": "Tuval",
   "ui.sec.background": "Saat arka planı",
-  "ui.sec.items": "3) Gösterim öğeleri (ItemList)",
-  "ui.sec.editor": "4) Seçili öğeyi düzenle",
+  "ui.sec.items": "Gösterim öğeleri (ItemList)",
+  "ui.sec.editor": "Seçili öğeyi düzenle",
   "ui.label.loadConfig": "Saat kadranı yapılandırmasını yükle (JSON)",
   "ui.label.pasteJson": "Veya JSON yapıştır",
   "ui.label.width": "Genişlik",

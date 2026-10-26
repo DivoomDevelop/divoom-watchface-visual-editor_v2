@@ -1,4 +1,28 @@
-# Divoom watchface visual editor
+# Divoom TimeFrame watchface visual editor
+
+## Downloads
+
+**Download an installer; no development tools are required.**
+
+| Platform | Installer |
+| --- | --- |
+| Windows 64-bit | [Download Windows installer (.exe)](https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2/releases/download/desktop-test-20261026/TimeFrame-Watchface-Editor-0.1.0-win-x64-setup.exe) |
+| Mac — Apple silicon | [Download Apple silicon installer (.dmg)](https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2/releases/download/desktop-test-20261026/TimeFrame-Watchface-Editor-0.1.0-mac-arm64.dmg) |
+| Mac — Intel | [Download Intel installer (.dmg)](https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2/releases/download/desktop-test-20261026/TimeFrame-Watchface-Editor-0.1.0-mac-x64.dmg) |
+
+All installers include the 17 TimeFrame templates returned by `Device/GetDemoClockList` and their resources for offline use. These are test installers: Windows is unsigned; macOS is ad-hoc signed and not notarized.
+
+[Release notes and all downloads](https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2/releases/tag/desktop-test-20261026)
+
+## Desktop application
+
+The desktop application includes Electron, the editor, and all fonts, templates, and resources shipped in this repository. Users do not need Node.js, Python, or a separate browser. TimeFrame uses an **800×1280** canvas and its own device protocol and resource catalog.
+
+Build a Windows x64 installer with `npm ci` and `npm run desktop:make:win`. On macOS, use `npm run desktop:make:mac -- --arm64` (Apple silicon) or `--x64` (Intel). For an ad-hoc signed test DMG, use `npm run desktop:make:mac:test -- --arm64`. Output is written to `out-desktop/`. Run `npm run desktop:start` for a desktop preview.
+
+Installers are distributed through [GitHub Releases](https://github.com/DivoomDevelop/divoom-watchface-visual-editor_v2/releases), after a release build is published. Build artifacts in GitHub Actions are intended for testing. See the [desktop packaging guide](docs/DESKTOP_PACKAGING.en.md) for signing, offline resources, testing, and publication.
+
+The desktop app stores designs and downloaded resources in its own user-data directory, separately from AstroToo and browser storage. Existing web designs are not automatically migrated. Device discovery and online operations require network access; bundled resources are available offline.
 
 Vite + ES modules: application source lives under `src/`, large static assets under `public/`, and build output under `dist/`. The build uses **relative asset URLs** (`base: './'`) so you can copy the whole `dist/` folder as-is.
 

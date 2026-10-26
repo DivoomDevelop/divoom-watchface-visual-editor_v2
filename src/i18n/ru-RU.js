@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const ruRU = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Редактор предпросмотра циферблата Divoom (PC)",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Загрузите JSON циферблата, просмотрите и отредактируйте на ПК перед отправкой на устройство.",
   "ui.language": "Язык",
   "ui.sec.config": "1) Конфигурация циферблата",
-  "ui.sec.canvas": "2) Холст",
+  "ui.sec.canvas": "Холст",
   "ui.sec.background": "Фон циферблата",
-  "ui.sec.items": "3) Элементы отображения (ItemList)",
-  "ui.sec.editor": "4) Редактирование выбранного элемента",
+  "ui.sec.items": "Элементы отображения (ItemList)",
+  "ui.sec.editor": "Редактирование выбранного элемента",
   "ui.label.loadConfig": "Загрузить конфигурацию циферблата (JSON)",
   "ui.label.pasteJson": "Или вставить JSON",
   "ui.label.width": "Ширина",

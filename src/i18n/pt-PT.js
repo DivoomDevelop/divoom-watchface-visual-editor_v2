@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const ptPT = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Editor de pré-visualização de watchface Divoom para PC",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Carregue o JSON da watchface, visualize e edite no PC antes de enviar para o dispositivo.",
   "ui.language": "Idioma",
   "ui.sec.config": "1) Configuração da watchface",
-  "ui.sec.canvas": "2) Canvas",
+  "ui.sec.canvas": "Canvas",
   "ui.sec.background": "Fundo do mostrador",
-  "ui.sec.items": "3) Itens de exibição (ItemList)",
-  "ui.sec.editor": "4) Editar item selecionado",
+  "ui.sec.items": "Itens de exibição (ItemList)",
+  "ui.sec.editor": "Editar item selecionado",
   "ui.label.loadConfig": "Carregar configuração da watchface (JSON)",
   "ui.label.pasteJson": "Ou colar JSON",
   "ui.label.width": "Largura",

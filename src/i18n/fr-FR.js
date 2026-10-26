@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const frFR = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Éditeur PC d'aperçu de cadran Divoom",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Chargez le JSON du cadran, prévisualisez et modifiez sur PC avant l'envoi vers l'appareil.",
   "ui.language": "Langue",
   "ui.sec.config": "1) Configuration du cadran",
-  "ui.sec.canvas": "2) Canevas",
+  "ui.sec.canvas": "Canevas",
   "ui.sec.background": "Fond du cadran",
-  "ui.sec.items": "3) Éléments d'affichage (ItemList)",
-  "ui.sec.editor": "4) Édition de l'élément sélectionné",
+  "ui.sec.items": "Éléments d'affichage (ItemList)",
+  "ui.sec.editor": "Édition de l'élément sélectionné",
   "ui.label.loadConfig": "Charger la configuration du cadran (JSON)",
   "ui.label.pasteJson": "Ou coller du JSON",
   "ui.label.width": "Largeur",

@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const idID = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Editor Pratinjau Watchface Divoom di PC",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Muat JSON watchface, pratinjau dan edit di PC sebelum dikirim ke perangkat.",
   "ui.language": "Bahasa",
   "ui.sec.config": "1) Konfigurasi watchface",
-  "ui.sec.canvas": "2) Kanvas",
+  "ui.sec.canvas": "Kanvas",
   "ui.sec.background": "Latar belakang tampilan jam",
-  "ui.sec.items": "3) Elemen tampilan (ItemList)",
-  "ui.sec.editor": "4) Edit elemen terpilih",
+  "ui.sec.items": "Elemen tampilan (ItemList)",
+  "ui.sec.editor": "Edit elemen terpilih",
   "ui.label.loadConfig": "Muat konfigurasi watchface (JSON)",
   "ui.label.pasteJson": "Atau tempel JSON",
   "ui.label.width": "Lebar",

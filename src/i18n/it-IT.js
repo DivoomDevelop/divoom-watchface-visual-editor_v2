@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const itIT = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Editor PC anteprima quadrante Divoom",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Carica il JSON del quadrante, visualizza e modifica su PC prima di inviarlo al dispositivo.",
   "ui.language": "Lingua",
   "ui.sec.config": "1) Configurazione quadrante",
-  "ui.sec.canvas": "2) Canvas",
+  "ui.sec.canvas": "Canvas",
   "ui.sec.background": "Sfondo quadrante",
-  "ui.sec.items": "3) Elementi di visualizzazione (ItemList)",
-  "ui.sec.editor": "4) Modifica elemento selezionato",
+  "ui.sec.items": "Elementi di visualizzazione (ItemList)",
+  "ui.sec.editor": "Modifica elemento selezionato",
   "ui.label.loadConfig": "Carica configurazione quadrante (JSON)",
   "ui.label.pasteJson": "Oppure incolla JSON",
   "ui.label.width": "Larghezza",

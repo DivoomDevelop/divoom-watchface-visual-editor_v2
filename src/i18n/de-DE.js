@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const deDE = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Divoom Watchface PC-Vorschaueditor",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Lade Watchface-JSON, prüfe und bearbeite es am PC, bevor du es an das Gerät sendest.",
   "ui.language": "Sprache",
   "ui.sec.config": "1) Watchface-Konfiguration",
-  "ui.sec.canvas": "2) Leinwand",
+  "ui.sec.canvas": "Leinwand",
   "ui.sec.background": "Zifferblatt-Hintergrund",
-  "ui.sec.items": "3) Anzeigeelemente (ItemList)",
-  "ui.sec.editor": "4) Ausgewähltes Element bearbeiten",
+  "ui.sec.items": "Anzeigeelemente (ItemList)",
+  "ui.sec.editor": "Ausgewähltes Element bearbeiten",
   "ui.label.loadConfig": "Watchface-Konfiguration laden (JSON)",
   "ui.label.pasteJson": "Oder JSON einfügen",
   "ui.label.width": "Breite",

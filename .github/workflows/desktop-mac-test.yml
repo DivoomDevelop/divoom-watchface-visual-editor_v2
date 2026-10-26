@@ -1,0 +1,71 @@
+name: Desktop test installers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/desktop-build-*]
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:desktop
+      - run: npm run desktop:make:win
+      - run: node scripts/verify-packaged-assets.cjs out-desktop/win-unpacked/resources/app.asar
+      - run: node scripts/smoke-packaged.cjs
+      - run: npm run desktop:smoke
+      - run: npm run desktop:smoke:templates
+      - run: npx electron scripts/smoke-workspace-ui.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timeframe-windows-x64-test
+          path: out-desktop/*-win-x64-setup.exe
+          if-no-files-found: error
+
+  dmg:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:desktop
+      - name: Build and verify ad-hoc signed test DMG
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          BUILD_ARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run desktop:make:mac:test -- --"$BUILD_ARCH"
+          image=(out-desktop/*-mac-"$BUILD_ARCH".dmg)
+          hdiutil verify "${image[0]}"
+          mount="$RUNNER_TEMP/timeframe-$BUILD_ARCH"
+          mkdir -p "$mount"
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "${image[0]}"
+          trap 'hdiutil detach "$mount" || true' EXIT
+          codesign --verify --deep --strict --verbose=2 "$mount/TimeFrame Watchface Editor.app"
+          node scripts/verify-packaged-assets.cjs "$mount/TimeFrame Watchface Editor.app/Contents/Resources/app.asar"
+          if [[ "$BUILD_ARCH" == "arm64" ]]; then
+            node scripts/smoke-packaged.cjs "$mount/TimeFrame Watchface Editor.app/Contents/MacOS/TimeFrame Watchface Editor"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timeframe-macos-${{ matrix.arch }}-adhoc-test
+          path: out-desktop/*-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error

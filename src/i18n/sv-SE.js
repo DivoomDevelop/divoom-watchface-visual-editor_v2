@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const svSE = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Divoom urtavla PC-förhandsgranskare",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Ladda urtavlans JSON, förhandsgranska och redigera på PC innan du skickar till enheten.",
   "ui.language": "Språk",
   "ui.sec.config": "1) Urtavlans konfiguration",
-  "ui.sec.canvas": "2) Duk",
+  "ui.sec.canvas": "Duk",
   "ui.sec.background": "Urverksbakgrund",
-  "ui.sec.items": "3) Visningselement (ItemList)",
-  "ui.sec.editor": "4) Redigera valt element",
+  "ui.sec.items": "Visningselement (ItemList)",
+  "ui.sec.editor": "Redigera valt element",
   "ui.label.loadConfig": "Ladda urtavlans konfiguration (JSON)",
   "ui.label.pasteJson": "Eller klistra in JSON",
   "ui.label.width": "Bredd",

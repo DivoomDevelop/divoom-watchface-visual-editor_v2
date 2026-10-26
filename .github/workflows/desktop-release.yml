@@ -1,0 +1,122 @@
+name: Desktop release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:desktop
+      - name: Prepare Windows signing certificate
+        shell: pwsh
+        env:
+          CERT_BASE64: ${{ secrets.WIN_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+        run: |
+          if (-not $env:CERT_BASE64 -or -not $env:CERT_PASSWORD) { throw "Windows signing secrets are required" }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "desktop-signing.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:CERT_BASE64))
+          "WIN_CSC_LINK=$certificatePath" >> $env:GITHUB_ENV
+      - name: Build signed Windows installer
+        env:
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+        run: npm run desktop:make:win
+      - run: node scripts/verify-packaged-assets.cjs out-desktop/win-unpacked/resources/app.asar
+      - run: node scripts/smoke-packaged.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-x64
+          path: out-desktop/*-win-x64-setup.exe
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:desktop
+      - name: Build signed and notarized macOS DMG
+        env:
+          CSC_LINK: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUILD_ARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for value in CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY_BASE64 APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_TEAM_ID; do
+            if [[ -z "${!value}" ]]; then echo "Missing signing secret: $value"; exit 1; fi
+          done
+          export APPLE_API_KEY="$RUNNER_TEMP/AuthKey_$APPLE_API_KEY_ID.p8"
+          node -e 'require("fs").writeFileSync(process.env.APPLE_API_KEY, Buffer.from(process.env.APPLE_API_KEY_BASE64, "base64"), { mode: 0o600 })'
+          trap 'rm -f "$APPLE_API_KEY"' EXIT
+          npm run desktop:make:mac -- --"$BUILD_ARCH"
+      - name: Verify DMG and bundled resources
+        shell: bash
+        env:
+          BUILD_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          image=(out-desktop/*-mac-"$BUILD_ARCH".dmg)
+          hdiutil verify "${image[0]}"
+          mount="$RUNNER_TEMP/timeframe-$BUILD_ARCH"
+          mkdir -p "$mount"
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "${image[0]}"
+          trap 'hdiutil detach "$mount" || true' EXIT
+          codesign --verify --deep --strict --verbose=2 "$mount/TimeFrame Watchface Editor.app"
+          xcrun stapler validate "$mount/TimeFrame Watchface Editor.app"
+          node scripts/verify-packaged-assets.cjs "$mount/TimeFrame Watchface Editor.app/Contents/Resources/app.asar"
+          if [[ "$BUILD_ARCH" == "arm64" ]]; then
+            node scripts/smoke-packaged.cjs "$mount/TimeFrame Watchface Editor.app/Contents/MacOS/TimeFrame Watchface Editor"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-${{ matrix.arch }}
+          path: out-desktop/*-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-assets
+          merge-multiple: true
+      - name: Publish installers and checksums to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'if (process.env.GITHUB_REF_NAME !== "v" + require("./package.json").version) throw new Error("Release tag must match package.json")'
+          files=(release-assets/*.exe release-assets/*.dmg)
+          test "${#files[@]}" -eq 3
+          (cd release-assets && sha256sum *.exe *.dmg > SHA256SUMS.txt)
+          gh release create "$GITHUB_REF_NAME" "${files[@]}" release-assets/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag

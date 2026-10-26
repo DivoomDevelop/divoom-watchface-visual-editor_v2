@@ -1,3 +1,5 @@
+import { APP_BUILD_NUMBER } from "./appVersion.js";
+import { setTemplateThumbnail } from "./templateThumbnail.js";
 import {
   LANGUAGE_OPTIONS,
   DEFAULT_LANGUAGE_ENUM,
@@ -48,15 +50,13 @@ import {
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const withBase = (rel) => BASE_URL + String(rel || "").replace(/^\//, "");
 
-const APP_BUILD_TAG = "2026-05-15 20:05";
+const APP_BUILD_TAG = `TimeFrame build ${APP_BUILD_NUMBER}`;
 
 /** 本地「管理员模式」开关（仅前端展示/后续功能入口；勿作安全边界）。 */
 const ADMIN_UNLOCK_STORAGE_KEY = "divoom_editor_admin_unlocked_v1";
 /** 与产品约定一致；仅用于本机浏览器内验证。 */
 const ADMIN_GATE_PASSWORD = "Divoom~!@#";
 
-/** Pack ClockId for `public/defaults/starter-watchface.json` (loads `template/29` & `template/15` when present). */
-const BUNDLED_STARTER_TEMPLATE_PACK_FALLBACK_ID = 342;
 const LAN_DEVICE_HARDWARE_WHITELIST = new Set([500, 510, 511, 512]);
 const LAN_DEVICE_HTTP_PORT = 9000;
 /** 与固件 /create_local_clock、/patch_local_clock 第二段约定一致（参见 LAN Quick Reference：tarball 内 clock_bg.*）。 */
@@ -518,88 +518,33 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   const TEMPLATE_PREVIEW_DIR_33 = withBase("template/33/");
   const TEMPLATE_ORGANIZE_REPORT_PATH = withBase("template/organize-report.json");
   const TEMPLATE_CLASSIFY_CACHE_PATH = withBase("template/classify-cache.json");
+  let bundledTemplateCatalog = { ClockList: [] };
+
+  function bundledTemplateRow(clockId) {
+    return bundledTemplateCatalog.ClockList.find(row => Number(row.ClockId) === Number(clockId));
+  }
+
+  function bundledTemplateAssetPath(clockId, address) {
+    const assets = bundledTemplateRow(clockId)?.assets || {};
+    const relative = assets[address] || Object.values(assets).find(relative => basename(relative) === address);
+    return relative ? withBase(relative) : "";
+  }
+
+  async function loadBundledTemplateAsset(clockId, address) {
+    const assetPath = bundledTemplateAssetPath(clockId, address);
+    if (!assetPath) return { asset: null, path: "" };
+    try { return { asset: await loadLocalAssetFromUrl(assetPath), path: assetPath }; }
+    catch { return { asset: null, path: assetPath }; }
+  }
+
+  function templateThumbnailSourcesForId(clockId) {
+    const meta = templateState.metaById.get(Number(clockId));
+    return [...new Set([meta?.DevPreviewSmallImgUrl, meta?.DevicePreviewImageUrl, meta?.AppImageUrl, meta?.DeviceImageUrl]
+      .map(address => bundledTemplateAssetPath(clockId, address)).filter(Boolean))];
+  }
   const TEMPLATE_BG_EXT_CANDIDATES = [".bin", ".png", ".jpg", ".jpeg", ".webp", ".gif"];
   const TEMPLATE_IMG_EXT_CANDIDATES = [".bin", ".png", ".webp", ".gif", ".jpg", ".jpeg"];
-  const TEMPLATE_CLASSIFY_FALLBACK = Object.freeze({
-    ReturnCode: 0,
-    ReturnMessage: "",
-    ClassifyList: [
-      {
-        ClassifyId: 58,
-        ClassifyNameEn: "Styled Photo Frames",
-        ClassifyName: "风格相框",
-        clockid: [999, 997, 863, 840, 874, 873, 648, 757, 761, 467, 459, 748, 428, 542, 540, 541, 539, 543, 544, 545, 362, 466, 286, 833, 568, 839, 1200, 1096, 976, 975, 974, 952, 951, 843, 844, 778, 684, 842, 644, 977, 978, 979, 980, 982, 981, 830, 770, 773, 652, 749, 650, 832, 831, 457, 574, 577, 444, 849, 848, 760, 1000, 973, 1198, 772, 1107, 546, 1432]
-      },
-      {
-        ClassifyId: 116,
-        ClassifyNameEn: "Artists’ Gallery",
-        ClassifyName: "艺术家联名",
-        clockid: [679, 693, 698, 704, 705, 712, 732, 735, 745, 737, 709, 708, 710, 747, 721, 729, 752, 736, 734, 875, 941, 998]
-      },
-      {
-        ClassifyId: 4,
-        ClassifyNameEn: "Classic",
-        ClassifyName: "通用",
-        clockid: [1564, 865, 446, 257, 335, 285, 469, 447, 1202, 270, 1493, 341, 339, 348, 1424, 345, 337, 309, 284, 282, 32, 347, 288, 12, 1397, 1425, 342, 343, 283, 1399, 440, 750, 771, 417, 427, 429, 430, 1401, 601, 938, 939, 579, 600, 655, 667, 253, 767, 845, 1201, 27, 1199, 841, 846, 847, 290, 291, 364, 310, 31, 34, 25, 26, 33, 344, 271, 289, 28, 263, 441, 261, 306, 346, 255, 262, 836, 336, 5, 308, 256, 1398, 1491, 1505]
-      },
-      {
-        ClassifyId: 48,
-        ClassifyNameEn: "Festival",
-        ClassifyName: "节日",
-        clockid: [1503, 1504, 1499, 1500, 1501, 1502, 1496, 1497, 1498, 99, 1508, 1507, 1509, 1506, 1440, 1436, 1444, 1437, 1438, 1439, 1144, 450, 1143, 1142, 454, 367, 707, 1510, 1511, 838, 453, 451, 572, 573, 768, 769, 1001, 984, 959, 960, 961, 100, 954, 955, 994, 452, 837, 442, 366, 98, 97, 465, 365, 996, 958, 956, 995, 953, 1151, 1150, 1149, 1148, 1147, 1146, 1152, 1145]
-      },
-      {
-        ClassifyId: 118,
-        ClassifyNameEn: "Anniversaries",
-        ClassifyName: "纪念日",
-        clockid: [460, 461, 535, 706, 738, 739, 945, 946, 947, 576, 681, 682, 774, 775, 776, 777, 779, 443, 472, 473, 528, 531, 536, 683, 983, 474, 534, 688, 699, 567, 458, 477, 476, 834, 835]
-      },
-      {
-        ClassifyId: 120,
-        ClassifyNameEn: "City Tour",
-        ClassifyName: "旅拍",
-        clockid: [643, 866, 867, 868, 858, 857, 649, 647, 646, 645, 850, 851, 854, 855, 856, 626, 627, 628, 630, 629, 872, 871, 869, 870, 740, 691, 690, 689, 687, 686, 685]
-      },
-      {
-        ClassifyId: 2,
-        ClassifyNameEn: "Social",
-        ClassifyName: "社交",
-        clockid: [803, 512, 514, 614, 617, 618, 379, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 957, 470]
-      },
-      {
-        ClassifyId: 10,
-        ClassifyNameEn: "Financial",
-        ClassifyName: "金融",
-        clockid: [258, 259, 260, 264, 1181, 1217, 113, 56, 52, 53, 877, 269, 382, 78, 265, 267, 266, 117, 114, 115, 116, 1215, 1216]
-      },
-      {
-        ClassifyId: 30,
-        ClassifyNameEn: "Weather",
-        ClassifyName: "天气",
-        clockid: [523, 529, 532, 533, 537, 91, 92, 93, 95, 96, 101, 102]
-      },
-      {
-        ClassifyId: 12,
-        ClassifyNameEn: "Tools",
-        ClassifyName: "工具",
-        clockid: [1478, 1127, 1135, 794, 1153, 1154, 548, 1197, 620, 478, 448, 950, 948, 598, 962, 659]
-      },
-      {
-        ClassifyId: 28,
-        ClassifyNameEn: "Smart Hardware",
-        ClassifyName: "智能硬件",
-        clockid: [302, 303, 305, 415, 449, 456, 468]
-      },
-      {
-        ClassifyId: 122,
-        ClassifyNameEn: "AI-Styled Photo Frames",
-        ClassifyName: "AI风格相框",
-        clockid: [1109, 1472, 1125, 1126, 1426, 1427, 1428, 1429, 1430, 1431, 1473, 1474, 1475, 1476, 1124, 1123, 1110, 1111, 1112, 1113, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121, 1122, 1477]
-      }
-    ],
-    DeviceId: 300344410,
-    PacketFlag: 1745214910
-  });
+  const TEMPLATE_CLASSIFY_FALLBACK = Object.freeze({ ReturnCode: 0, ClassifyList: [] });
 
   /** 设备同步后写入 public/template/classify-cache.json，优先于内置快照。 */
   let templateClassifyDataRuntime = null;
@@ -1478,6 +1423,13 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     if (!dom.txtBgSourcePath) return;
     dom.txtBgSourcePath.value = state.backgroundSourceLabel || "";
     dom.txtBgSourcePath.title = state.backgroundSourceLabel || "";
+    const preview = byId("bg-resource-preview");
+    if (preview) {
+      const src = state.backgroundObjectUrl || state.backgroundImage?.src || "";
+      if (src) preview.src = src;
+      else preview.removeAttribute("src");
+      preview.hidden = !src;
+    }
   }
 
   function fontBaseFromCfgPath(cfgPath) {
@@ -1912,9 +1864,10 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       if (!candidates.length) return;
 
       (async () => {
-        const basePaths = Array.isArray(runtime.fontBasePaths) && runtime.fontBasePaths.length
+        let basePaths = Array.isArray(runtime.fontBasePaths) && runtime.fontBasePaths.length
           ? runtime.fontBasePaths
           : [withBase("font/")];
+        if (bundledTemplateCatalog.fontOverrides?.[fontId]) basePaths = [withBase("template/demo/fonts/"), ...basePaths];
         for (const local of candidates) {
           for (const base of basePaths) {
             try {
@@ -2741,6 +2694,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       setNodeText(dom.templateDownloadTitle, t("template.pending.downloadingTitle", { name: "" }));
     }
 
+    setNodeText(byId("sec-local-watch-title"), t("ui.sec.localWatch"));
     setNodeText(dom.secCanvasTitle, t("ui.sec.canvas"));
     setNodeText(dom.secBackgroundTitle, t("ui.sec.background"));
     setNodeText(dom.secItemlistTitle, t("ui.sec.items"));
@@ -3094,6 +3048,10 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     return {
       NameCn: String(raw?.NameCn ?? "").trim(),
       NameEn: String(raw?.NameEn ?? "").trim(),
+      AppImageUrl: String(raw?.AppImageUrl || ""),
+      DeviceImageUrl: String(raw?.DeviceImageUrl || ""),
+      DevicePreviewImageUrl: String(raw?.DevicePreviewImageUrl || ""),
+      DevPreviewSmallImgUrl: String(raw?.DevPreviewSmallImgUrl || ""),
       ClockId: toNum(raw?.ClockId, fallbackId)
     };
   }
@@ -3385,7 +3343,8 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     try {
       const id = toNum(packClockId, 0);
       if (id <= 0) return "";
-      const thumbUrl = withBase(`template/33/${id + 1}.png`);
+      const thumbUrl = templateThumbnailSourcesForId(id)[0];
+      if (!thumbUrl) return "";
       const img = await new Promise((resolve, reject) => {
         const im = new Image();
         im.decoding = "async";
@@ -3410,10 +3369,11 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     } catch {
       return;
     }
-    const packClock = toNum(raw?.ClockId, BUNDLED_STARTER_TEMPLATE_PACK_FALLBACK_ID);
+    const packClock = toNum(raw?.ClockId, 0);
+    if (!bundledTemplateRow(packClock)) return;
     const nmCn = String(raw?.NameCn || "").trim();
     const nmEn = String(raw?.NameEn || "").trim();
-    const rowName = nmCn || nmEn || "立体方块2";
+    const rowName = nmCn || nmEn || getTemplateListItemName(packClock);
     const bgData = await loadBundledThumbDataUrl(packClock);
     upsert({
       id: BUNDLED_STARTER_WATCHFACE_ID,
@@ -3448,6 +3408,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       updatedAt: Date.now(),
       config: JSON.parse(JSON.stringify(state.config)),
       backgroundDataUrl: bgUrl,
+      thumbnailDataUrl: captureWorkspaceThumbnail() || existing?.thumbnailDataUrl || "",
       backgroundName: state.backgroundName || "",
       backgroundSourceLabel: state.backgroundSourceLabel || "",
       width: state.width,
@@ -3502,8 +3463,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     sidebarBrowseMode = "template";
     refreshSidebarBrowseChrome();
 
-    const selectedClassify = getSelectedTemplateClassifyRow();
-    const filtered = selectedClassify ? [...selectedClassify.availableIds] : [];
+    const filtered = [...templateState.ids];
 
     if (!filtered.length) {
       templateState.activeClockId = null;
@@ -3619,6 +3579,24 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     return false;
   }
 
+  function captureWorkspaceThumbnail() {
+    const selected = state.selectedIndex;
+    try {
+      state.selectedIndex = -1;
+      renderWatchface();
+      const thumbnail = document.createElement("canvas");
+      thumbnail.width = 160;
+      thumbnail.height = Math.round(160 * state.height / state.width);
+      thumbnail.getContext("2d").drawImage(dom.canvas, 0, 0, thumbnail.width, thumbnail.height);
+      return thumbnail.toDataURL("image/png");
+    } catch {
+      return "";
+    } finally {
+      state.selectedIndex = selected;
+      renderWatchface();
+    }
+  }
+
   function refreshLocalWatchfaceListUi() {
     const ul = dom.localWatchfaceList;
     if (!ul) return;
@@ -3626,17 +3604,56 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     if (dom.localWatchHint) {
       dom.localWatchHint.textContent =
         rows.length === 0 ? t("localWatch.listEmpty") : t("localWatch.listHint");
+      dom.localWatchHint.title = dom.localWatchHint.textContent;
     }
     ul.innerHTML = "";
     for (const row of rows) {
       const li = document.createElement("li");
       if (row.id === activeLocalWatchfaceId) li.classList.add("active");
-      const main = document.createElement("div");
+      const main = document.createElement("button");
+      main.type = "button";
       main.className = "local-watch-row-main";
+      const thumb = document.createElement("span");
+      thumb.className = "local-watch-thumb";
+      const packId = toNum(row.config?.TemplateAssetClockId || row.templateActiveClockId || row.config?.ClockId, 0);
+      const sources = [row.thumbnailDataUrl, row.appPreviewDataUrl, row.backgroundDataUrl];
+      if (packId > 0) {
+        sources.push(...templateThumbnailSourcesForId(packId));
+      }
+      const available = sources.filter(Boolean);
+      thumb.textContent = (row.width || 800) + " × " + (row.height || 1280);
+      if (available.length) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.loading = "lazy";
+        let index = 0;
+        img.onerror = () => {
+          if (++index < available.length) img.src = available[index];
+          else img.remove();
+        };
+        img.src = available[0];
+        thumb.replaceChildren(img);
+      }
+      const meta = document.createElement("span");
+      meta.className = "local-watch-meta";
       const title = document.createElement("span");
       title.className = "template-id";
       title.textContent = row.name || row.id;
-      main.append(title);
+      title.title = title.textContent;
+      main.title = title.textContent;
+      const badge = document.createElement("span");
+      badge.className = "local-watch-status";
+      badge.textContent = t(toNum(row.config?.ClockId, 0) > 0 ? "localWatch.status.onDevice" : "localWatch.status.local");
+      meta.append(title, badge);
+      if (Number(row.updatedAt) > 0) {
+        const date = document.createElement("span");
+        date.className = "local-watch-date";
+        date.textContent = new Date(row.updatedAt).toLocaleString(getLocaleCode(), {
+          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+        });
+        meta.appendChild(date);
+      }
+      main.append(thumb, meta);
       main.addEventListener("click", () => {
         void loadLocalWatchfaceById(row.id);
       });
@@ -3819,6 +3836,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       updatedAt: Date.now(),
       config: newConfig,
       backgroundDataUrl: src.backgroundDataUrl || "",
+      thumbnailDataUrl: src.thumbnailDataUrl || "",
       backgroundName: src.backgroundName || "",
       backgroundSourceLabel: src.backgroundSourceLabel || "",
       width: src.width ?? 800,
@@ -3911,7 +3929,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   }
 
   function resolveSameLanDeviceListUrl() {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV || location.protocol === "timeframe:") {
       return `${location.origin}/divoom-cloud-proxy/Device/ReturnSameLANDevice`;
     }
     if (location.protocol === "file:") {
@@ -3925,7 +3943,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   }
 
   function shouldUseLanProxyTunnel() {
-    if (import.meta.env.DEV) return true;
+    if (import.meta.env.DEV || location.protocol === "timeframe:") return true;
     const host = location.hostname;
     if (host === "localhost" || host === "127.0.0.1") return true;
     return location.port === "4173";
@@ -4132,7 +4150,10 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   function refreshTemplateSyncUi() {
     syncTemplateDomRefs();
     const btn = dom.btnSyncTemplates;
-    if (!btn) return;
+    if (!btn) {
+      refreshFontSyncButtonUi();
+      return;
+    }
     btn.hidden = pendingTemplateState.active;
     btn.title = t("template.btn.syncTitle");
     setNodeText(btn, t("template.btn.sync"));
@@ -6189,9 +6210,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   function refreshTemplateListUi() {
     syncTemplateDomRefs();
     if (!dom.templateList || !dom.templateHint) return;
-    const selectedClassify = getSelectedTemplateClassifyRow();
-    const categoryTemplateIds = selectedClassify ? selectedClassify.availableIds : [];
-    const filtered = [...categoryTemplateIds];
+    const filtered = [...templateState.ids];
 
     dom.templateList.innerHTML = "";
     if (!filtered.length) {
@@ -6211,7 +6230,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
         img.alt = "";
         img.decoding = "async";
         img.loading = "lazy";
-        img.src = `${TEMPLATE_PREVIEW_DIR_33}${id + 1}.png`;
+        setTemplateThumbnail(img, templateThumbnailSourcesForId(id));
 
         const textWrap = document.createElement("div");
         textWrap.className = "template-thumb-text";
@@ -6252,7 +6271,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       dom.templateHint.textContent = t("template.hint.loading");
     } else if (templateState.error) {
       dom.templateHint.textContent = t("template.hint.error", { message: templateState.error });
-    } else if (selectedClassify && filtered.length) {
+    } else if (filtered.length) {
       dom.templateHint.textContent = t("template.hint.browse", { count: filtered.length });
     } else {
       dom.templateHint.textContent = t("template.hint.empty");
@@ -6311,6 +6330,16 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   }
 
   async function resolveTemplateConfigIds() {
+    const catalog = await fetchJson(withBase("template/demo-catalog.json"));
+    if (catalog.product !== "TimeFrame" || catalog.deviceType !== "Frame" || catalog.source !== "Device/GetDemoClockList" || !catalog.ClockList?.length) {
+      throw new Error("Invalid bundled TimeFrame template catalog");
+    }
+    bundledTemplateCatalog = catalog;
+    return { ids: catalog.ClockList.map(row => Number(row.ClockId)), source: "Device/GetDemoClockList (bundled)" };
+  }
+
+  // Retained only for diagnostics of older installations; never used by the built-in library.
+  async function resolveLegacyTemplateConfigIds() {
     const scanPaths = [
       withBase("template/config/"),
       "./template/config/",
@@ -6391,6 +6420,11 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   }
 
   async function loadTemplateBackgroundByClockId(clockId) {
+    if (bundledTemplateRow(clockId)) {
+      const cfg = await loadTemplateConfigByClockId(clockId);
+      if (bundledTemplateRow(clockId).unavailableAssets?.includes(cfg.DeviceImageUrl)) return { asset: null, path: "", optional: true };
+      return loadBundledTemplateAsset(clockId, cfg.DeviceImageUrl);
+    }
     const bgFileId = toNum(clockId, 0) + 1;
     return loadFirstTemplateAsset(TEMPLATE_DIR_15, String(bgFileId), TEMPLATE_BG_EXT_CANDIDATES);
   }
@@ -6407,6 +6441,21 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       if (token !== templateState.loadToken) return { aborted: true, total, loaded, missing, unmapped };
       if (!isTemplateImageItem(item)) continue;
       total += 1;
+      if (bundledTemplateRow(id)) {
+        if (!String(item.image_addr || "").trim()) { total -= 1; continue; }
+        const result = await loadBundledTemplateAsset(id, item.image_addr);
+        if (token !== templateState.loadToken) {
+          releaseStandaloneAsset(result.asset);
+          return { aborted: true, total, loaded, missing, unmapped };
+        }
+        if (result.asset) {
+          result.asset.fromLocalPick = true;
+          setLocalDispAsset(item, result.asset);
+          item.image_addr = result.asset.name;
+          loaded += 1;
+        } else missing += 1;
+        continue;
+      }
       const slot = getTemplateSlotByItem(id, item);
       if (!Number.isFinite(slot) || slot <= 0) {
         unmapped += 1;
@@ -6563,47 +6612,57 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
   }
 
   function buildDispSelectForEditor(currentDisp) {
-    const select = document.createElement("select");
-    select.dataset.key = "disp";
     const currentId = toNum(currentDisp, 0);
-    const dispEntries = Object.entries(DISP_NAME_MAP)
-      .map(([id, name]) => ({ id: toNum(id, NaN), name: String(name || "") }))
-      .filter((x) => Number.isFinite(x.id))
-      .sort((a, b) => a.id - b.id);
-
-    let hasCurrent = false;
     const groups = new Map();
-    for (const row of dispEntries) {
-      const category = dispCategoryKey(row.id, row.name);
+    for (const [id, name] of Object.entries(DISP_NAME_MAP)) {
+      const dispId = Number(id);
+      const category = dispCategoryKey(dispId, name);
       if (!groups.has(category)) groups.set(category, []);
-      groups.get(category).push(row);
-      if (row.id === currentId) hasCurrent = true;
+      groups.get(category).push(dispId);
     }
-    const orderedCats = DISP_CATEGORY_ORDER.filter((c) => groups.has(c));
-    const extraCats = [...groups.keys()].filter((c) => !DISP_CATEGORY_ORDER.includes(c)).sort();
-    for (const cat of [...orderedCats, ...extraCats]) {
-      const optgroup = document.createElement("optgroup");
-      const rows = groups.get(cat) || [];
-      optgroup.label = `${t(cat)} (${rows.length})`;
-      for (const row of rows) {
-        const opt = document.createElement("option");
-        opt.value = String(row.id);
-        opt.textContent = formatDispOptionText(row.id);
-        optgroup.appendChild(opt);
+    if (!Object.hasOwn(DISP_NAME_MAP, currentId)) groups.set("disp.cat.currentValue", [currentId]);
+    const categories = [...DISP_CATEGORY_ORDER.filter(key => groups.has(key)),
+      ...[...groups.keys()].filter(key => !DISP_CATEGORY_ORDER.includes(key))];
+    const active = categories.find(key => groups.get(key).includes(currentId)) || categories[0];
+    const row = document.createElement("div");
+    row.className = "disp-picker-row";
+    const categorySelect = document.createElement("select");
+    categorySelect.className = "disp-picker-category";
+    categorySelect.setAttribute("aria-label", t("editor.dispPickCategory"));
+    for (const key of categories) {
+      const option = document.createElement("option");
+      option.value = key;
+      option.textContent = t(key) + " (" + groups.get(key).length + ")";
+      categorySelect.appendChild(option);
+    }
+    categorySelect.value = active;
+    const itemSelect = document.createElement("select");
+    itemSelect.className = "disp-picker-item";
+    itemSelect.dataset.key = "disp";
+    itemSelect.setAttribute("aria-label", t("editor.dispPickItem"));
+    const fillItems = () => {
+      const ids = (groups.get(categorySelect.value) || []).slice().sort((a, b) => a - b);
+      itemSelect.replaceChildren();
+      if (!ids.includes(currentId)) {
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        placeholder.textContent = t("editor.dispPickItem");
+        itemSelect.appendChild(placeholder);
       }
-      select.appendChild(optgroup);
-    }
-    if (!hasCurrent) {
-      const optgroup = document.createElement("optgroup");
-      optgroup.label = t("disp.cat.currentValue");
-      const opt = document.createElement("option");
-      opt.value = String(currentId);
-      opt.textContent = `${formatDispOptionText(currentId)} (${t("disp.cat.currentValue")})`;
-      optgroup.appendChild(opt);
-      select.appendChild(optgroup);
-    }
-    select.value = String(currentId);
-    return select;
+      for (const id of ids) {
+        const option = document.createElement("option");
+        option.value = String(id);
+        option.textContent = formatDispOptionText(id);
+        option.selected = id === currentId;
+        itemSelect.appendChild(option);
+      }
+    };
+    fillItems();
+    categorySelect.addEventListener("change", fillItems);
+    row.append(categorySelect, itemSelect);
+    return { node: row, input: itemSelect };
   }
 
   function buildAlignSelectForEditor(currentAlign) {
@@ -6637,6 +6696,41 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     }
     select.value = String(currentId);
     return select;
+  }
+
+  function buildSepControlForEditor(currentSep) {
+    const value = normalizeCharSpacing(currentSep, 0);
+    const box = document.createElement("div");
+    box.className = "sep-control-editor";
+
+    const numberInput = document.createElement("input");
+    numberInput.type = "number";
+    numberInput.dataset.key = "sep";
+    numberInput.min = "-20";
+    numberInput.max = "200";
+    numberInput.step = "1";
+    numberInput.value = String(value);
+
+    const rangeInput = document.createElement("input");
+    rangeInput.type = "range";
+    rangeInput.className = "sep-control-slider";
+    rangeInput.min = "-20";
+    rangeInput.max = "200";
+    rangeInput.step = "1";
+    rangeInput.value = String(value);
+    rangeInput.setAttribute("aria-label", t("editor.sep"));
+
+    rangeInput.addEventListener("input", () => {
+      numberInput.value = rangeInput.value;
+      numberInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    numberInput.addEventListener("input", () => {
+      const next = normalizeCharSpacing(numberInput.value, 0);
+      rangeInput.value = String(next);
+    });
+
+    box.append(numberInput, rangeInput);
+    return { node: box, input: numberInput };
   }
 
   function buildColorPaletteInputForEditor(currentColor) {
@@ -6846,7 +6940,7 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       if (isImageFont && !IMAGE_FONT_EDITOR_VISIBLE_KEYS.has(field.key)) return;
       const wrap = document.createElement("label");
       wrap.className = "editor-field";
-      if (field.full) wrap.classList.add("full");
+      if (field.full || field.key === "disp") wrap.classList.add("full");
       const k = document.createElement("span");
       k.className = "k";
       let keyLabel = t(field.labelKey);
@@ -6860,8 +6954,9 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       let input;
       let controlNode;
       if (field.key === "disp") {
-        input = buildDispSelectForEditor(item.disp);
-        controlNode = input;
+        const picker = buildDispSelectForEditor(item.disp);
+        input = picker.input;
+        controlNode = picker.node;
       } else if (field.key === "alig") {
         input = buildAlignSelectForEditor(item.alig);
         controlNode = input;
@@ -6885,6 +6980,10 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       } else if (field.key === "font") {
         input = buildFontSelectForEditor(fontId);
         controlNode = input;
+      } else if (field.key === "sep" && !rotateSingleImage) {
+        const spacing = buildSepControlForEditor(item.sep);
+        input = spacing.input;
+        controlNode = spacing.node;
       } else if (field.type === "color-palette") {
         const c = buildColorPaletteInputForEditor(item[field.key]);
         input = c.input;
@@ -8083,6 +8182,8 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
     fontStore.log(t("log.uiBuildVersion", { tag: APP_BUILD_TAG }));
     refreshBackgroundSourceLabel();
     loadPhotoAlbumDemoImages();
+    loadDefaultFontConfigs();
+    await loadTemplateConfigIds();
 
     await ensureBundledStarterWatchfaceIfLibraryEmpty();
 
@@ -8126,10 +8227,6 @@ const LOCAL_FILE_PICK_MAX_BYTES = 500 * 1024;
       },
       { once: true }
     );
-    loadDefaultFontConfigs();
-    await loadTemplateClassifyCache();
-    await loadTemplateConfigIds();
-    await initPendingTemplateOnStartup();
     await initPendingFontsOnStartup();
     refreshTemplateSyncUi();
     void warnIfFileProtocolBlocked();

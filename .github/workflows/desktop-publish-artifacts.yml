@@ -1,0 +1,67 @@
+name: Publish verified desktop test installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Desktop test installers run ID from this repository
+        required: true
+      commit_sha:
+        description: Full commit SHA of that run
+        required: true
+      release_tag:
+        description: New prerelease tag, for example desktop-test-20261026
+        required: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_RUN: ${{ inputs.run_id }}
+      SOURCE_SHA: ${{ inputs.commit_sha }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - name: Verify source build and release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^desktop-test-[A-Za-z0-9._-]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN" > source-run.json
+          jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha and .path == ".github/workflows/desktop-mac-test.yml"' source-run.json
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          pattern: timeframe-*
+          path: distribution
+          merge-multiple: true
+      - name: Publish the verified installers as a prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(distribution/*-win-x64-setup.exe distribution/*-mac-arm64.dmg distribution/*-mac-x64.dmg)
+          test "${#files[@]}" -eq 3
+          for file in "${files[@]}"; do test -f "$file"; done
+          (cd distribution && sha256sum *.exe *.dmg > SHA256SUMS.txt)
+          cat > release-notes.md <<'NOTES'
+          ## TimeFrame Studio test installers
+
+          - Windows x64: download the `.exe` installer.
+          - Mac with Apple silicon: download `mac-arm64.dmg`.
+          - Mac with an Intel processor: download `mac-x64.dmg`.
+          - All installers include TimeFrame's bundled fonts, templates, and resources for offline use.
+          - Resource integrity and packaged application checks passed in the source build.
+          - Test signing: Windows is unsigned; macOS is ad-hoc signed and not notarized.
+          - SHA256SUMS.txt contains checksums for all three installers.
+          NOTES
+          printf '\nSource commit: `%s`\n' "$SOURCE_SHA" >> release-notes.md
+          gh release create "$RELEASE_TAG" "${files[@]}" distribution/SHA256SUMS.txt --draft --prerelease --target "$SOURCE_SHA" --title "TimeFrame Studio test installers" --notes-file release-notes.md
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false

@@ -1,0 +1,6 @@
+# Preserve the exact bytes recorded in the offline resource manifest on every OS.
+public/template/** -text
+public/font/** -text
+public/defaults/starter-watchface.json -text
+.githooks/* text eol=lf
+.github/workflows/*.yml text eol=lf

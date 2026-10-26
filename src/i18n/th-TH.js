@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const thTH = Object.freeze({
   ...enUS,
-  "ui.appTitle": "ตัวแก้ไขพรีวิวหน้าปัด Divoom บนพีซี",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "โหลด JSON หน้าปัด นำมาพรีวิวและแก้ไขบนพีซีก่อนส่งไปยังอุปกรณ์",
   "ui.language": "ภาษา",
   "ui.sec.config": "1) การตั้งค่าหน้าปัด",
-  "ui.sec.canvas": "2) แคนวาส",
+  "ui.sec.canvas": "แคนวาส",
   "ui.sec.background": "พื้นหลังหน้าปัด",
-  "ui.sec.items": "3) รายการองค์ประกอบ (ItemList)",
-  "ui.sec.editor": "4) แก้ไของค์ประกอบที่เลือก",
+  "ui.sec.items": "รายการองค์ประกอบ (ItemList)",
+  "ui.sec.editor": "แก้ไของค์ประกอบที่เลือก",
   "ui.label.loadConfig": "โหลดไฟล์ตั้งค่าหน้าปัด (JSON)",
   "ui.label.pasteJson": "หรือวาง JSON",
   "ui.label.width": "ความกว้าง",

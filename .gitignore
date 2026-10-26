@@ -1,4 +1,8 @@
 node_modules/
 dist/
+out/
+out-desktop/
+out-desktop-*/
+artifacts/
 .DS_Store
 *.log

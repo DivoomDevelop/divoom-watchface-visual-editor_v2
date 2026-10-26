@@ -2,14 +2,14 @@ import enUS from "./en-US.js";
 
 const daDK = Object.freeze({
   ...enUS,
-  "ui.appTitle": "Divoom urskive PC-forhåndsvisning",
+  "ui.appTitle": "TimeFrame Studio",
   "ui.appSubtitle": "Indlæs urskive-JSON, forhåndsvis og redigér på PC før overførsel til enheden.",
   "ui.language": "Sprog",
   "ui.sec.config": "1) Urskivekonfiguration",
-  "ui.sec.canvas": "2) Lærred",
+  "ui.sec.canvas": "Lærred",
   "ui.sec.background": "Urskivebaggrund",
-  "ui.sec.items": "3) Visningselementer (ItemList)",
-  "ui.sec.editor": "4) Redigér valgt element",
+  "ui.sec.items": "Visningselementer (ItemList)",
+  "ui.sec.editor": "Redigér valgt element",
   "ui.label.loadConfig": "Indlæs urskivekonfiguration (JSON)",
   "ui.label.pasteJson": "Eller indsæt JSON",
   "ui.label.width": "Bredde",
